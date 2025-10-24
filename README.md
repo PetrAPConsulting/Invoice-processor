@@ -77,7 +77,7 @@ pip3 install requests
 
 ### 4. Verify File Permissions
 
-# On Mac/Linux
+#### On Mac/Linux
 ```bash
 chmod +x vat_checker.py
 ```
