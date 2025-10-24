@@ -14,7 +14,7 @@ A full-stack invoice processing and tracking application powered by **Mistral AI
 
 
 ### 2. **Packages ** 
-- Files: `mistral_server.js`, `mistral_database.js`, `Mistral_Invoice_processor.html`, `package.json`
+- Files: `mistral_server.js`, `mistral_database.js`, `Mistral_Invoice_processor.html`, `package.json`, `vat_checker.py`
 - Database: `mistral_invoices.db`
 - API: Mistral with mistral-small-latest model (the newest version of Mistral Small 3.2 )
 - Tabs: Invoice Extractor, Expense Tracker, Suppliers
