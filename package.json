@@ -1,0 +1,24 @@
+{
+  "name": "mistral-invoice-tracker",
+  "version": "1.0.0",
+  "description": "Mistral AI powered Invoice & Receipt Manager with integrated backend and proxy",
+  "main": "mistral_server.js",
+  "scripts": {
+    "start": "node mistral_server.js",
+    "dev": "nodemon mistral_server.js"
+  },
+  "keywords": ["invoice", "vat", "tracker", "api", "mistral", "ai"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "helmet": "^7.1.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
