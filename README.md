@@ -53,7 +53,7 @@ npm --version
 
 ### 1. Navigate to Project Directory
 
-Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`, `mistral_invoices.db`, `vat_checker.py` )
+Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`, `vat_checker.py` )
 
 ### 2. Install Dependencies for Mistral App
 
