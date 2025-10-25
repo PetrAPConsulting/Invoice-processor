@@ -49,7 +49,7 @@ npm --version
 
 ---
 
-## Installation Steps for Mistral Version
+## Installation Steps
 
 ### 1. Navigate to Project Directory
 
@@ -137,7 +137,7 @@ Open `Mistral_Invoice_processor.html` directly in your browser:
 1. **Upload an invoice** (PDF, PNG, JPG, JPEG, GIF, WEBP)
 2. **Upload an ISDOC file** (ISDOC XML format)
 3. **Review extracted data** - Mistral AI automatically extracts invoice fields
-4. **VAT reliability check** - System automatically checks VAT status
+4. **VAT reliability check** - System automatically checks VAT payer status
 5. **Edit as needed** - All fields are editable
 6. **Download JSON** or **Add to Tracker**
 
