@@ -60,6 +60,7 @@ Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_data
 ```bash
 npm install 
 ```
+You must install them from chosen project directory. As result you will see new directory will be created `node_modules` containing all packages. Installation will create `package-lock.json` in project directory as well.
 
 ### 3. Install Python Dependencies
 
@@ -167,7 +168,7 @@ Open `Mistral_Invoice_processor.html` directly in your browser:
 
 ### Mistral Database Location
 
-The SQLite database file is created automatically at same directory.
+The SQLite database file is created automatically at the same project directory the first time npm start command is run.
 
 ### Direct Access
 
