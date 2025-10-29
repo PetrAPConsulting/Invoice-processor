@@ -3,8 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { spawn } = require('child_process');
 const fetch = require('node-fetch');
+const { XMLParser } = require('fast-xml-parser');
 const db = require('./mistral_database');
 
 const app = express();
@@ -24,55 +24,147 @@ db.initDatabase();
 
 console.log('🚀 Mistral Invoice Manager Server starting...');
 
-// Helper function to call Python VAT checker
-function checkVatReliability(vatNumber) {
-    return new Promise((resolve) => {
-        const pythonProcess = spawn('python3', [path.join(__dirname, 'vat_checker.py'), vatNumber]);
+// VAT Checker Configuration
+const VAT_SERVICE_URL = 'https://adisrws.mfcr.cz/dpr/axis2/services/rozhraniCRPDPH.rozhraniCRPDPHSOAP';
+const SOAP_ACTION = 'getStatusNespolehlivyPlatce';
+const SOAP_NS = 'http://schemas.xmlsoap.org/soap/envelope/';
+const CRP_NS = 'http://adis.mfcr.cz/rozhraniCRPDPH/';
 
-        let output = '';
-        let error = '';
+/**
+ * Build SOAP envelope for VAT reliability check
+ */
+function buildSoapEnvelope(vatNumber) {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="${SOAP_NS}">
+  <soapenv:Body>
+    <StatusNespolehlivyPlatceRequest xmlns="${CRP_NS}">
+      <dic>${vatNumber}</dic>
+    </StatusNespolehlivyPlatceRequest>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+}
 
-        pythonProcess.stdout.on('data', (data) => {
-            output += data.toString();
+/**
+ * Interpret VAT status from SOAP response
+ */
+function interpretStatus(status) {
+    if (status === 'ANO') {
+        return { statusText: 'Unreliable', reliableValue: 'false' };
+    }
+    if (status === 'NE') {
+        return { statusText: 'Reliable', reliableValue: 'true' };
+    }
+    // Anything else (including "NENALEZEN") is treated as not found
+    return { statusText: 'Not found', reliableValue: 'NA' };
+}
+
+/**
+ * Native Node.js VAT reliability checker
+ */
+async function checkVatReliability(vatInput) {
+    const result = {
+        status: 'error',
+        reliable_vat_payer: 'true',
+        message: '',
+        auto_checked: true,
+        vat_number_clean: ''
+    };
+
+    // Strip everything except digits
+    const vatNumber = vatInput.replace(/\D/g, '');
+    result.vat_number_clean = vatNumber;
+
+    if (!vatNumber) {
+        result.message = 'Invalid VAT number - no digits found';
+        result.auto_checked = false;
+        return result;
+    }
+
+    try {
+        // Build and send SOAP request
+        const soapEnvelope = buildSoapEnvelope(vatNumber);
+        const response = await fetch(VAT_SERVICE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/xml; charset=utf-8',
+                'SOAPAction': SOAP_ACTION
+            },
+            body: soapEnvelope,
+            timeout: 30000
         });
 
-        pythonProcess.stderr.on('data', (data) => {
-            error += data.toString();
-        });
+        if (!response.ok) {
+            result.message = `VAT service returned error: ${response.status}`;
+            result.auto_checked = false;
+            return result;
+        }
 
-        pythonProcess.on('close', (code) => {
-            if (code === 0) {
-                try {
-                    const result = JSON.parse(output.trim());
-                    resolve(result);
-                } catch (parseError) {
-                    resolve({
-                        status: 'error',
-                        reliable_vat_payer: 'true',
-                        message: 'Error parsing VAT check response',
-                        auto_checked: false
-                    });
-                }
-            } else {
-                resolve({
-                    status: 'error',
-                    reliable_vat_payer: 'true',
-                    message: error || 'Error running VAT check service',
-                    auto_checked: false
-                });
-            }
+        // Parse XML response
+        const xmlText = await response.text();
+        const parser = new XMLParser({
+            ignoreAttributes: false,
+            attributeNamePrefix: '@_'
         });
+        const parsed = parser.parse(xmlText);
 
-        setTimeout(() => {
-            pythonProcess.kill();
-            resolve({
-                status: 'timeout',
-                reliable_vat_payer: 'true',
-                message: 'VAT check service timeout',
-                auto_checked: false
-            });
-        }, 15000);
-    });
+        // Navigate through SOAP structure to find statusPlatceDPH
+        const body = parsed['soapenv:Envelope']?.['soapenv:Body'];
+        if (!body) {
+            result.message = 'Invalid SOAP response structure';
+            result.auto_checked = false;
+            return result;
+        }
+
+        // Find the response element
+        const responseElement = body['StatusNespolehlivyPlatceResponse'] ||
+                                body['ns:StatusNespolehlivyPlatceResponse'] ||
+                                body['crp:StatusNespolehlivyPlatceResponse'];
+
+        if (!responseElement) {
+            result.message = 'VAT service response format not recognized';
+            result.auto_checked = false;
+            return result;
+        }
+
+        // Find statusPlatceDPH element(s)
+        let statusElements = responseElement['statusPlatceDPH'];
+        if (!statusElements) {
+            result.status = 'not_found';
+            result.reliable_vat_payer = 'NA';
+            result.message = 'VAT payer not found in registry';
+            return result;
+        }
+
+        // Handle both single element and array of elements
+        if (!Array.isArray(statusElements)) {
+            statusElements = [statusElements];
+        }
+
+        // Find the element matching our VAT number
+        const matchingElement = statusElements.find(el => el['@_dic'] === vatNumber);
+
+        if (!matchingElement) {
+            result.status = 'not_found';
+            result.reliable_vat_payer = 'NA';
+            result.message = 'VAT payer not found in registry';
+            return result;
+        }
+
+        // Read nespolehlivyPlatce attribute
+        const nsp = (matchingElement['@_nespolehlivyPlatce'] || '').trim().toUpperCase();
+        const { statusText, reliableValue } = interpretStatus(nsp);
+
+        result.status = 'success';
+        result.reliable_vat_payer = reliableValue;
+        result.message = `VAT Tax payer status: ${statusText}`;
+
+    } catch (error) {
+        console.error('VAT check error:', error.message);
+        result.message = `Error contacting VAT service: ${error.message}`;
+        result.auto_checked = false;
+    }
+
+    return result;
 }
 
 // ============================================
