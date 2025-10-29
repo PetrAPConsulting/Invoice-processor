@@ -1772,7 +1772,7 @@
 <invoice_fields>
 {{supplier_name}} description: Extract the legal name of the entity that issued the invoice. Follow this priority order: 1) Primary: Look for the company name that includes a legal entity designation (e.g., s.r.o., a.s., spol. s r.o., LLC, Inc., Corp., Ltd., GmbH, SA, etc.). This is typically the official legal name and should always be prioritized over brand names or trade names. 2) Secondary: If no legal entity designation is present, look for the name that appears in the official invoice header, sender address, or tax/registration number section. 3) Individual persons: If the invoice is issued by an individual (no legal entity designation present), extract the full personal name. Prioritize legal names over brand names, even if the brand name is more prominently displayed.
 
-{{vat_number}} description: VAT number is a string beginning with 2 letters, usually CZ, followed by 8 or 9 digits for a company and 10 digits for an individual person. IMPORTANT: If you see a string starting with "C" followed by what appears to be a digit "2", interpret this as "CZ" - the second character should always be the letter "Z" when the first character is "C". This field is mandatory - every invoice must have a VAT number. Look carefully in the header, footer, or company details section if not immediately visible.
+{{vat_number}} description: VAT number is a string beginning with 2 letters, usually CZ, followed by 8 or 9 digits for a company and 10 digits for an individual person. IMPORTANT: If you see a string starting with "C" followed by what appears to be a digit "2", interpret this as "CZ" - the second character should always be the letter "Z" when the first character is "C". CRITICAL: Some companies have multiple VAT identifiers - if you see both "DIČ" and any variation containing "DPH" (such as "DIČ k DPH", "DPH DIČ", "IČ DPH", or VAT number labeled with "DPH"), you MUST extract the number associated with DPH as this is the VAT number used for VAT tax declarations. Only use the plain "DIČ" if no DPH-related VAT number is present. This field is mandatory - every invoice must have a VAT number. Look carefully in the header, footer, or company details section if not immediately visible.
 
 {{invoice_number}} description: Invoice number is the unique identifier of this specific invoice document. Look for fields labeled "číslo faktury", "daňový doklad číslo", or "doklad číslo". AVOID extracting "číslo plátce" (payers number), "klientské číslo" (client number), "zákaznické číslo" (customer number), or "číslo objednávky" (order numbers). This field is mandatory - every invoice must have an invoice number. The invoice number is typically displayed prominently near the top of the invoice and is the number that identifies this particular billing document. If you cannot find a clearly labeled invoice number, use the "variabilní symbol" (variable symbol) value as it often serves as the invoice number. Extract only numeric characters from this field, removing any letters or special characters.
 
@@ -1837,8 +1837,8 @@ Provide only the JSON output without any additional description or explanation.`
                             ]
                         }
                     ],
-                    temperature: 0.1,
-                    max_tokens: 500,
+                    temperature: 0.0,
+                    max_tokens: 300,
                     top_p: 0.95
                 };
 
