@@ -1,6 +1,6 @@
 {
   "name": "mistral-invoice-tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Mistral AI powered Invoice & Receipt Manager with integrated backend and proxy",
   "main": "mistral_server.js",
   "scripts": {
