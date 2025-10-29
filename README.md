@@ -7,14 +7,14 @@ A full-stack invoice processing and tracking application powered by **Mistral AI
 - **Mistral AI Integration**: Uses `mistral-small-latest` model via Mistral API
 - **Integrated Backend**: Single server combines backend API + Mistral proxy (port 3002)
 - **Separate Database**: Uses `mistral_invoices.db` (SQLite database)
-- **Extraction of financial data**: Intensively tested System prompt guarantees to get the best from Mistral Small 3.2 
+- **Extraction of financial data**: Intensively tested System prompt guarantees to get the best from Mistral Small 3.2
 - **ISDOC import**: You can import ISDOC e-invoices
-- **VAT payer reliability check**: Direct check with MF database of unreliable VAT payers
-- **Financial Analytic**:  Analytics of VAT for VAT return statements on quarterly basis (could be easily modified for monthly period), supplier analysis by date range
+- **VAT payer reliability check**: Native Node.js SOAP client for direct check with MF database of unreliable VAT payers
+- **Financial Analytic**: Analytics of VAT for VAT return statements on quarterly basis (could be easily modified for monthly period), supplier analysis by date range
 
 
 ### 2. **Packages ** 
-- Files: `mistral_server.js`, `mistral_database.js`, `Mistral_Invoice_processor.html`, `package.json`, `vat_checker.py`
+- Files: `mistral_server.js`, `mistral_database.js`, `Mistral_Invoice_processor.html`, `package.json`
 - Database: `mistral_invoices.db`
 - API: Mistral with mistral-small-latest model (the newest version of Mistral Small 3.2 )
 - Tabs: Invoice Extractor, Expense Tracker, Suppliers
@@ -28,7 +28,6 @@ A full-stack invoice processing and tracking application powered by **Mistral AI
 Before installation, ensure you have:
 
 - **Node.js** (version 14 or higher) - [Download here](https://nodejs.org/)
-- **Python 3** (version 3.7 or higher) - [Download here](https://www.python.org/downloads/)
 - **npm** (comes with Node.js)
 - **Mistral API Key** - [Get one here](https://console.mistral.ai/)
 
@@ -38,11 +37,6 @@ Before installation, ensure you have:
 # Check Node.js version
 node --version
 
-# Check Python version
-python --version
-# or
-python3 --version
-
 # Check npm version
 npm --version
 ```
@@ -51,37 +45,24 @@ npm --version
 
 ## Installation Steps
 
+> **Note for v1.0.0 users:** Python and `vat_checker.py` are no longer required. VAT checking is now natively integrated into Node.js. Simply run `npm install` to get the new `fast-xml-parser` dependency.
+
 ### 1. Navigate to Project Directory
 
-Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`, `vat_checker.py` )
+Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`, `mistral_invoices.db`)
 
-### 2. Install Dependencies for Mistral App
-
-```bash
-npm install 
-```
-You must install them from chosen project directory. As result you will see new directory will be created `node_modules` containing all packages. Installation will create `package-lock.json` in project directory as well.
-
-### 3. Install Python Dependencies
-
-Check if Python requests library is available:
+### 2. Install Dependencies
 
 ```bash
-python3 -c "import requests; print('requests is available')"
+npm install
 ```
 
-If you see an error, install it:
-
-```bash
-pip3 install requests
-```
-
-### 4. Verify File Permissions
-
-#### On Mac/Linux
-```bash
-chmod +x vat_checker.py
-```
+This will install all required Node.js packages including:
+- `express` - Web server framework
+- `sqlite3` - Database driver
+- `fast-xml-parser` - XML parsing for VAT SOAP API
+- `node-fetch` - HTTP client
+- Other dependencies (cors, helmet, body-parser)
 
 ---
 
@@ -138,7 +119,7 @@ Open `Mistral_Invoice_processor.html` directly in your browser:
 1. **Upload an invoice** (PDF, PNG, JPG, JPEG, GIF, WEBP)
 2. **Upload an ISDOC file** (ISDOC XML format)
 3. **Review extracted data** - Mistral AI automatically extracts invoice fields
-4. **VAT reliability check** - System automatically checks VAT payer status
+4. **VAT reliability check** - System automatically checks VAT status
 5. **Edit as needed** - All fields are editable
 6. **Download JSON** or **Add to Tracker**
 
@@ -168,7 +149,7 @@ Open `Mistral_Invoice_processor.html` directly in your browser:
 
 ### Mistral Database Location
 
-The SQLite database file is created automatically at the same project directory the first time npm start command is run.
+The SQLite database file is created automatically at same directory.
 
 ### Direct Access
 
@@ -213,7 +194,17 @@ or export data directly from database
 
 ### VAT Checking Not Working
 
-Could be error in extracted VAT number or API of Financial Directorate is down. You can set up this value manually.
+**Possible causes:**
+- Incorrect VAT number format (system automatically strips non-digits)
+- MF CR (Financial Directorate) API service is temporarily down
+- Network connectivity issues
+- SOAP service timeout (30 seconds)
+
+**Solutions:**
+- Verify the VAT number is correct
+- Check server logs for detailed error messages
+- Manually set the VAT reliability status if automatic check fails
+- Wait a few minutes and try again if service is temporarily unavailable
 
 ---
 
@@ -243,16 +234,12 @@ The Mistral backend provides these REST API endpoints:
 
 ```
 Mistral_Faktury/
-│   ├── package.json                    # Mistral app dependencies
-│   ├── mistral_server.js               # Mistral backend + proxy (port 3002)
-│   ├── mistral_database.js             # Mistral database operations
-│   ├── Mistral_Invoice_processor.html  # Mistral frontend 
-│   └── mistral_invoices.db             # Mistral database (auto-created)
-│
-├── SHARED FILES:
-│   ├── vat_checker.py                  # VAT reliability checker (Python)
-│   └── README.md          
-
+├── package.json                        # Application dependencies
+├── mistral_server.js                   # Backend server + Mistral proxy + VAT checker (port 3002)
+├── mistral_database.js                 # Database operations
+├── Mistral_Invoice_processor.html      # Frontend application
+├── mistral_invoices.db                 # SQLite database (auto-created)
+└── README.md                           # This file
 ```
 
 ---
@@ -292,5 +279,5 @@ This application is provided as-is for personal and commercial use.
 
 ---
 
-**Last Updated:** October 2024
-**Version:**  1.0.0
+**Last Updated:** October 2025
+**Version:** 1.1.0 - Native Node.js VAT checker (removed Python dependency)
