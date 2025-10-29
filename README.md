@@ -1,6 +1,6 @@
 # Mistral Invoice & Receipt Manager - Installation Guide
 
-A full-stack invoice processing and tracking application powered by **Mistral AI** with automated VAT reliability checking for Czech businesses.
+A full-stack invoice processing and tracking application powered by **Mistral AI** with automated VAT reliability checking for Czech businesses. Version 1.1.0 is pure Node.js application only.
 
 ## Features 
 
