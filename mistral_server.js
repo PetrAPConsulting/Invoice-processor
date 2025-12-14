@@ -445,7 +445,6 @@ app.use((error, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`✅ Mistral Invoice Manager Server running on port ${PORT}`);
-    console.log(`Frontend available at: http://localhost:${PORT}`);
     console.log(`API available at: http://localhost:${PORT}/api`);
     console.log(`Mistral Proxy available at: http://localhost:${PORT}/api/mistral/chat`);
     console.log('📝 Model: mistral-small-latest with T=0.0, top_p=0.95');
