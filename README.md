@@ -49,7 +49,7 @@ npm --version
 
 ### 1. Navigate to Project Directory
 
-Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`, `mistral_invoices.db`)
+Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`)
 
 ### 2. Install Dependencies
 
@@ -98,7 +98,6 @@ You should see output like:
 Connected to Mistral SQLite database: mistral_invoices.db
 Mistral database tables initialized successfully
 ✅ Mistral Invoice Manager Server running on port 3002
-Frontend available at: http://localhost:3002
 API available at: http://localhost:3002/api
 Mistral Proxy available at: http://localhost:3002/api/mistral/chat
 📝 Model: mistral-small-latest with T=0.1, top_p=0.95
