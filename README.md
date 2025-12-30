@@ -68,23 +68,6 @@ This will install all required Node.js packages including:
 
 ---
 
-## Configuration
-
-### Mistral API Key Setup
-
-When you first open app on
-```bash
-http://localhost:3002
-```
-1. Navigate to the "Invoice Extractor" tab
-2. Enter your **Mistral API key** in the API Configuration section
-3. Optionally enable password protection for the key
-4. Click "Save API Key"
-
-The API key is stored encrypted in your browser's localStorage and is never sent anywhere except to Mistral API via the integrated proxy.
-
----
-
 ## Running the Mistral Application
 
 ### Start the Mistral Server
@@ -114,6 +97,20 @@ Open browser and insert:
 ```bash
 http://localhost:3002
 ```
+
+### Mistral API Key Setup
+
+When you first open app on
+```bash
+http://localhost:3002
+```
+1. Navigate to the "Invoice Extractor" tab
+2. Enter your **Mistral API key** in the API Configuration section
+3. Optionally enable password protection for the key
+4. Click "Save API Key"
+
+The API key is stored encrypted in your browser's localStorage and is never sent anywhere except to Mistral API via the integrated proxy.
+
 ---
 
 ## Using the Mistral Application
