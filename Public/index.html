@@ -1,0 +1,3075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://apconsulting.cz data:; connect-src 'self' http://localhost:3002;">     
+    <title>Invoice&Receipt Manager</title>
+    <!-- Migrated to PDF.js 5.4.394 - Security update from 3.11.174 -->
+    <link rel="icon" type="image/png" href="/Assets/invoice_extractor_72px.png">
+    <!-- PDF.js 5.4.394 - Migrated from 3.11.174 for security (CVE-2024-4367 fix) -->
+    <!-- Using legacy build for better inline script compatibility -->
+    <script src="https://unpkg.com/pdfjs-dist@5.4.394/legacy/build/pdf.min.mjs" type="module" integrity="sha512-rM/Bj36W8aNtc/FgadyVtNBQM26uPwJ+Cc/8AwVzX0g+fnHPSWHM9CCP8zH5RrB5VRe9vfkfQVC2l91vRoaiSQ==" crossorigin="anonymous"></script>
+    <script type="module">
+        // Make pdfjsLib available globally for inline scripts
+        import * as pdfjsLib from 'https://unpkg.com/pdfjs-dist@5.4.394/legacy/build/pdf.min.mjs';
+        window.pdfjsLib = pdfjsLib;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.4.394/legacy/build/pdf.worker.min.mjs';
+        // Dispatch event when PDF.js is ready
+        window.dispatchEvent(new Event('pdfjsReady'));
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* AP Consulting Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: Tahoma, sans-serif;
+        }
+
+        body {
+            font-family: Verdana, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #00A38C 0%, #006859 100%);
+            min-height: 100vh;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 22.5px 20px;
+            position: relative;
+        }
+
+        .nav-logo {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #00A38C;
+            font-family: Tahoma, sans-serif;
+            position: absolute;
+            left: 20px;
+        }
+
+        .nav-logo a {
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-logo a:hover {
+            opacity: 0.8;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 5px;
+        }
+
+        .nav-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab:hover {
+            color: #00A38C;
+        }
+
+        .nav-tab.active {
+            color: #00A38C;
+            border-bottom-color: #00A38C;
+        }
+
+        /* Page Container */
+        .page {
+            display: none;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* Common Styles */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.95;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #00A38C;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #006859;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 163, 140, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #333333;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 101, 101, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Page 1: Extractor Styles */
+        .main-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .api-key-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .api-key-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .api-key-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .api-key-input input {
+            width: 100%;
+            padding: 10px 45px 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: monospace;
+        }
+
+        .toggle-visibility-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .toggle-visibility-btn:hover {
+            opacity: 1;
+        }
+
+        .api-key-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #f0f4f8;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .api-key-status.saved {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .api-key-status.missing {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .drop-zone {
+            border: 3px dashed #00A38C;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #E6FFFC;
+        }
+
+        .drop-zone:hover {
+            border-color: #006859;
+            background: #d0f5f0;
+        }
+
+        .drop-zone.dragging {
+            border-color: #006859;
+            background: #c0ede7;
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #00A38C;
+        }
+
+        .drop-zone-text {
+            color: #333333;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone-hint {
+            color: #666666;
+            font-size: 0.9rem;
+        }
+
+        .split-content {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .split-content.active {
+            display: grid;
+        }
+
+        .preview-section, .data-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            color: #333333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .invoice-preview {
+            width: 100%;
+            max-height: 600px;
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f7fafc;
+        }
+
+        .invoice-preview img, .invoice-preview canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333333;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #00A38C;
+            box-shadow: 0 0 0 3px rgba(0, 163, 140, 0.1);
+        }
+
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+            padding-right: 40px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-message.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .status-message.show {
+            display: block;
+        }
+
+        /* Page 2: Tracker Styles */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-card h3 {
+            color: #333333;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00A38C;
+        }
+
+        .quarter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .quarter-tab {
+            background: #f1f5f9;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #666666;
+        }
+
+        .quarter-tab.active {
+            background: #00A38C;
+            color: white;
+        }
+
+        .chart-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 350px;
+            max-height: 420px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .chart-wrapper canvas {
+            max-width: 100% !important;
+            max-height: 100% !important;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .suppliers-table {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .table-header {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #333333;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .unreliable {
+            background-color: #fef2f2 !important;
+            color: #dc2626;
+        }
+
+        .unreliable td {
+            border-bottom-color: #fecaca;
+        }
+
+        .not-vat-payer {
+            background-color: #f8fafc !important;
+            color: #64748b;
+        }
+
+        .not-vat-payer td {
+            border-bottom-color: #e2e8f0;
+        }
+
+        .amount {
+            font-weight: 600;
+            color: #059669;
+        }
+
+        .vat-amount {
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #00A38C;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .tracker-notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+
+        .tracker-notification.show {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Password unlock dialog */
+        #unlockDialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #unlockDialog > div {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 968px) {
+            .split-content {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-container {
+                flex-direction: column;
+                padding: 10px 20px;
+            }
+
+            .nav-logo {
+                font-size: 1.8rem;
+                position: static;
+                padding: 15px 0 10px 0;
+            }
+
+            .nav-tab {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+<nav class="nav-bar">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <a href="https://www.apconsulting.cz" target="_blank" style="display: flex; align-items: center; text-decoration: none;">
+                <img src="/Assets/ap-consulting-logo.png" alt="AP Consulting Logo" style="height: 54px; width: auto; display: block;">
+            </a>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchPage('extractor')">Invoice Extractor</button>
+            <button class="nav-tab" onclick="switchPage('tracker')">Expense Tracker</button>
+            <button class="nav-tab" onclick="switchPage('suppliers')">Suppliers</button>
+        </div>
+    </div>
+</nav>
+
+    <!-- Page 1: Invoice Extractor -->
+    <div id="extractorPage" class="page active">
+        <div class="header">
+            <h1>Invoice Data Extractor - Mistral AI</h1>
+            <p>Start Backend server (npm start): Upload invoice → Extract → Edit → Analyze data</p>
+        </div>
+
+        <!-- API Key Section -->
+        <div class="api-key-section">
+            <h3 class="section-title">Mistral API Configuration</h3>
+            <div class="api-key-input">
+                <div class="api-key-input-wrapper">
+                    <input type="password" id="apiKey" placeholder="Enter your Mistral API key" />
+                    <button type="button" class="toggle-visibility-btn" onclick="toggleApiKeyVisibility()" id="toggleVisibility" title="Toggle visibility">
+                        👁️
+                    </button>
+                </div>
+                <button class="btn btn-primary" onclick="saveApiKey()">Save API Key</button>
+                <button class="btn btn-danger" onclick="deleteApiKey()" id="deleteKeyBtn" style="display:none;" title="Delete stored API key">🗑️ Delete Key</button>
+            </div>
+            
+            <!-- Encryption options -->
+            <div style="margin-top: 15px; padding: 15px; background: #f8f9ff; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 10px;">
+                    <input type="checkbox" id="enableEncryption" onchange="toggleEncryption()" style="width: auto; cursor: pointer;" />
+                    <span style="color: #4a5568; font-weight: 500;">🔐 Enable password protection for API key</span>
+                </label>
+                <div id="encryptionPassword" style="display: none;">
+                    <input type="password" id="keyPassword" placeholder="Enter password to encrypt API key" style="width: 100%; padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px;" />
+                    <small style="color: #718096; display: block; margin-top: 5px;">
+                        This password will encrypt your API key in browser storage. You'll need it each time you open the app.
+                    </small>
+                </div>
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                <small style="color: #718096;">
+                    API key is encrypted and stored locally in browser and never sent anywhere except to Mistral API via proxy server.
+                </small>
+                <div id="apiKeyStatus" class="api-key-status missing">
+                    <span id="statusIcon">⚠️</span>
+                    <span id="statusText">No API key saved</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password unlock dialog -->
+        <div id="unlockDialog">
+            <div>
+                <h3 style="margin-bottom: 20px; color: #2d3748;">🔐 Unlock API Key</h3>
+                <p style="color: #4a5568; margin-bottom: 20px;">Your API key is password-protected. Enter your password to unlock it.</p>
+                <input type="password" id="unlockPassword" placeholder="Enter password" style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 6px; margin-bottom: 15px;" />
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="unlockApiKey()" style="flex: 1;">Unlock</button>
+                    <button class="btn btn-secondary" onclick="cancelUnlock()" style="flex: 1;">Cancel</button>
+                </div>
+                <div id="unlockError" style="color: #e53e3e; margin-top: 10px; display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="main-content">
+            <div id="statusMessage" class="status-message"></div>
+            
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">📤</div>
+                <div class="drop-zone-text">Drop your invoice here or click to browse</div>
+                <div class="drop-zone-hint">Supports: PDF, PNG, JPG, JPEG, GIF, WEBP, XML (<strong>ISDOC</strong>)</div>
+                <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.xml" />
+            </div>
+
+            <!-- Split Content -->
+            <div class="split-content" id="splitContent">
+                <!-- Preview Section -->
+                <div class="preview-section">
+                    <h2 class="section-title">Invoice Preview</h2>
+                    <div class="invoice-preview" id="invoicePreview">
+                        <canvas id="pdfCanvas" style="display:none;"></canvas>
+                        <img id="imagePreview" style="display:none;" />
+                    </div>
+                </div>
+
+                <!-- Data Section -->
+                <div class="data-section">
+                    <h2 class="section-title">Extracted Data</h2>
+                    <form id="dataForm">
+                        <div class="form-group">
+                            <label for="supplier_name">Supplier Name</label>
+                            <input type="text" id="supplier_name" name="supplier_name" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="vat_number">VAT Number</label>
+                            <input type="text" id="vat_number" name="vat_number" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="invoice_number">Invoice Number</label>
+                            <input type="text" id="invoice_number" name="invoice_number" />
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="date_of_sale">Date of Sale</label>
+                                <input type="text" id="date_of_sale" name="date_of_sale" placeholder="dd.mm.yyyy" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="due_date">Due Date</label>
+                                <input type="text" id="due_date" name="due_date" placeholder="dd.mm.yyyy" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="duzp">DUZP (Date of Taxable Supply)</label>
+                            <input type="text" id="duzp" name="duzp" placeholder="dd.mm.yyyy" />
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="amount_without_VAT_21">Amount without VAT 21%</label>
+                                <input type="text" id="amount_without_VAT_21" name="amount_without_VAT_21" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="VAT_21">VAT 21%</label>
+                                <input type="text" id="VAT_21" name="VAT_21" />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="amount_without_VAT_12">Amount without VAT 12%</label>
+                                <input type="text" id="amount_without_VAT_12" name="amount_without_VAT_12" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="VAT_12">VAT 12%</label>
+                                <input type="text" id="VAT_12" name="VAT_12" />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="total_amount_with_VAT">Total Amount with VAT</label>
+                            <input type="text" id="total_amount_with_VAT" name="total_amount_with_VAT" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reliable_VAT_payer">VAT Payer Reliability Status</label>
+                            <select id="reliable_VAT_payer" name="reliable_VAT_payer">
+                                <option value="true">✅ Reliable (true)</option>
+                                <option value="NA">🔸 Not VAT Payer (NA)</option>
+                                <option value="false">❌ Unreliable (false)</option>
+                            </select>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn btn-primary" onclick="downloadJSON()">
+                                💾 Download JSON
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="addToTracker()">
+                                ➕ Add to Tracker
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                🔄 New Invoice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 2: Expense Tracker -->
+    <div id="trackerPage" class="page">
+        <div class="header">
+            <h1>VAT Expense Tracker</h1>
+            <p>Track your expenses and VAT obligations by quarter</p>
+        </div>
+
+        <div class="main-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Invoices</h3>
+                    <div class="stat-value" id="totalInvoices">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Amount (CZK)</h3>
+                    <div class="stat-value" id="totalAmount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Current Quarter VAT (CZK)</h3>
+                    <div class="stat-value" id="currentQuarterVAT">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>YTD VAT (CZK)</h3>
+                    <div class="stat-value" id="ytdVAT">0</div>
+                </div>
+            </div>
+
+            <div class="quarter-tabs" id="quarterTabs"></div>
+
+            <div style="margin-bottom: 20px; text-align: center;">
+                <div class="action-buttons" style="justify-content: center;">
+                    <button class="btn btn-success" onclick="exportAllData()">📊 Export All Data</button>
+                    <button class="btn btn-success" onclick="exportQuarterlyData()">📅 Export Quarter</button>
+                    <button class="btn btn-danger" onclick="clearData()">🗑️ Clear All Data</button>
+                    <label for="fileInputTracker" class="btn btn-secondary" style="margin: 0;">
+                        📁 Upload JSON Files
+                        <input type="file" id="fileInputTracker" style="display: none;" multiple accept=".json" onchange="handleTrackerFileUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Expenses by Supplier</div>
+                <div class="chart-wrapper">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <div class="suppliers-table">
+                <div class="table-header">
+                    <div class="table-title">Supplier Details</div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Supplier Name</th>
+                                <th>VAT Number</th>
+                                <th>Total Amount (CZK)</th>
+                                <th>Total VAT (CZK)</th>
+                                <th>Invoices</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliersTableBody">
+                            <tr>
+                                <td colspan="6" class="no-data">No data available. Add invoices from the extractor or upload JSON files.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page 3: Suppliers -->
+    <div id="suppliersPage" class="page">
+        <div class="header">
+            <h1>Supplier Analysis</h1>
+            <p>Analyze expenditures by supplier for selected period</p>
+        </div>
+
+        <div class="main-content">
+            <div style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 15px;">Select Date Range</h3>
+                <div style="display: flex; gap: 20px; align-items: end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Start Date:</label>
+                        <input type="date" id="suppliersStartDate" style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 1rem;">
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">End Date:</label>
+                        <input type="date" id="suppliersEndDate" style="width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 1rem;">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadSupplierData()" style="min-width: 150px;">Load Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="suppliersContent" style="display: none;">
+            <div class="stats-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-label">Total Expenditures (including VAT)</div>
+                    <div class="stat-value" id="suppliersTotalExpenditure">0 CZK</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Suppliers</div>
+                    <div class="stat-value" id="suppliersTotalSuppliers">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Invoices</div>
+                    <div class="stat-value" id="suppliersTotalInvoices">0</div>
+                </div>
+            </div>
+
+            <div class="main-content" style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 20px;">Expenditures by Supplier</h3>
+                <div style="position: relative; height: 500px; max-width: 1000px; margin: 0 auto;">
+                    <canvas id="suppliersPieChart"></canvas>
+                </div>
+                <div style="margin-top: 15px; padding: 12px; background: #f8f9ff; border-radius: 8px; color: #666; font-size: 0.9em; text-align: center;">
+                    * Chart shows only suppliers with ≥2% of total expenditures
+                </div>
+            </div>
+
+            <div class="main-content">
+                <h3 style="margin-bottom: 20px;">All Suppliers</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #00A38C; color: white;">
+                                <th style="padding: 15px; text-align: left; font-weight: 600;">#</th>
+                                <th style="padding: 15px; text-align: left; font-weight: 600;">Supplier Name</th>
+                                <th style="padding: 15px; text-align: right; font-weight: 600;">Total Amount (CZK)</th>
+                                <th style="padding: 15px; text-align: right; font-weight: 600;">% of Total</th>
+                                <th style="padding: 15px; text-align: center; font-weight: 600;">Invoice Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliersFullTable" style="background: white;">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification for tracker -->
+    <div class="tracker-notification" id="trackerNotification">
+        <span>✅ Invoice added to tracker successfully!</span>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div style="text-align: center;">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Extracting invoice data...</div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for PDF.js ES module to be ready
+        // The pdfjsReady event is dispatched after the module loads
+        let pdfjsReady = false;
+        
+        window.addEventListener('pdfjsReady', () => {
+            pdfjsReady = true;
+            // Security hardening - disable eval (CVE-2024-4367 mitigation)
+            if (window.pdfjsLib) {
+                window.pdfjsLib.GlobalWorkerOptions.isEvalSupported = false;
+            }
+            console.log('PDF.js 5.4.394 loaded successfully');
+        });
+    </script>
+
+    <script>
+        // Global variables
+        let currentFile = null;
+        let currentFileName = '';
+        let invoicesData = [];
+        let currentQuarter = getCurrentQuarter();
+        let currentYear = getCurrentYear();
+        let expenseChart = null;
+
+        // Modern color palette for charts - AP Consulting brand colors
+        const colors = [
+        // AP Consulting brand colors
+         '#00A38C', // primary teal
+         '#FF8000', // secondary orange
+         '#0067A3', // analog blue
+         '#006859', // dark teal
+         '#10b981', // emerald
+         '#f59e0b', // amber
+         '#ef4444', // red
+
+        // Extended colors
+         '#ec4899', // pink
+         '#3b82f6', // blue
+         '#14b8a6', // teal
+         '#84cc16', // lime
+         '#f97316', // orange
+         '#a855f7', // purple
+         '#22c55e', // green
+         '#eab308', // yellow
+         '#06b6d4', // sky blue
+         '#f43f5e'  // rose
+         ];
+
+        // ============================================
+        // Security: HTML Sanitization (XSS Prevention)
+        // ============================================
+        /**
+         * Escapes HTML special characters to prevent XSS attacks.
+         * Use this function whenever displaying user-controlled data in HTML.
+         * @param {string} str - The string to sanitize
+         * @returns {string} - HTML-escaped string safe for innerHTML
+         */
+        function escapeHtml(str) {
+            if (str === null || str === undefined) {
+                return '';
+            }
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
+        /**
+         * Sanitizes an object's string properties for safe HTML display.
+         * @param {Object} obj - Object with string properties to sanitize
+         * @param {Array} keys - Array of keys to sanitize (optional, defaults to all string props)
+         * @returns {Object} - New object with sanitized string values
+         */
+        function sanitizeForDisplay(obj, keys = null) {
+            const sanitized = { ...obj };
+            const keysToSanitize = keys || Object.keys(obj);
+            
+            keysToSanitize.forEach(key => {
+                if (typeof sanitized[key] === 'string') {
+                    sanitized[key] = escapeHtml(sanitized[key]);
+                }
+            });
+            
+            return sanitized;
+        }
+
+        // API Configuration - Mistral server runs on port 3002
+        const API_BASE_URL = 'http://localhost:3002/api';
+
+        // API helper function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            try {
+                const config = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+                
+                if (data) {
+                    config.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'API call failed');
+                }
+                
+                return result.data;
+            } catch (error) {
+                console.error('API call error:', error);
+                throw error;
+            }
+        }
+
+        // ============================================
+        // Navigation Functions
+        // ============================================
+        function switchPage(page) {
+            // Update nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+            if (page === 'extractor') {
+                document.getElementById('extractorPage').classList.add('active');
+            } else if (page === 'tracker') {
+                document.getElementById('trackerPage').classList.add('active');
+                updateTrackerDisplay();
+            } else if (page === 'suppliers') {
+                document.getElementById('suppliersPage').classList.add('active');
+            }
+        }
+
+        // ============================================
+        // Encryption and API Key Functions
+        // ============================================
+        async function deriveKey(password, salt) {
+            const encoder = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(password),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            return crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+        
+        async function encryptApiKey(apiKey, password) {
+            try {
+                const encoder = new TextEncoder();
+                const salt = crypto.getRandomValues(new Uint8Array(16));
+                const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await deriveKey(password, salt);
+                
+                const encrypted = await crypto.subtle.encrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    encoder.encode(apiKey)
+                );
+                
+                const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+                combined.set(salt, 0);
+                combined.set(iv, salt.length);
+                combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+                
+                return btoa(String.fromCharCode(...combined));
+            } catch (error) {
+                console.error('Encryption error:', error);
+                return null;
+            }
+        }
+        
+        async function decryptApiKey(encryptedData, password) {
+            try {
+                const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+                const salt = combined.slice(0, 16);
+                const iv = combined.slice(16, 28);
+                const encrypted = combined.slice(28);
+                
+                const key = await deriveKey(password, salt);
+                
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: iv },
+                    key,
+                    encrypted
+                );
+                
+                const decoder = new TextDecoder();
+                return decoder.decode(decrypted);
+            } catch (error) {
+                console.error('Decryption error:', error);
+                return null;
+            }
+        }
+        
+        function obfuscateKey(key) {
+            return btoa(key.split('').reverse().join(''));
+        }
+        
+        function deobfuscateKey(obfuscated) {
+            try {
+                return atob(obfuscated).split('').reverse().join('');
+            } catch {
+                return null;
+            }
+        }
+        
+        function toggleEncryption() {
+            const checkbox = document.getElementById('enableEncryption');
+            const passwordDiv = document.getElementById('encryptionPassword');
+            passwordDiv.style.display = checkbox.checked ? 'block' : 'none';
+            
+            if (checkbox.checked) {
+                document.getElementById('keyPassword').focus();
+            }
+        }
+        
+        async function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const enableEncryption = document.getElementById('enableEncryption').checked;
+            const password = document.getElementById('keyPassword').value;
+            
+            if (!apiKey) {
+                showStatus('Please enter a valid API key', 'error');
+                return;
+            }
+            
+            if (enableEncryption && !password) {
+                showStatus('Please enter a password to encrypt the API key', 'error');
+                document.getElementById('keyPassword').focus();
+                return;
+            }
+            
+            try {
+                let storageValue;
+                let metadata = {};
+                
+                if (enableEncryption && password) {
+                    storageValue = await encryptApiKey(apiKey, password);
+                    metadata.passwordProtected = true;
+                    showStatus('API key saved and encrypted with password!', 'success');
+                } else {
+                    storageValue = obfuscateKey(apiKey);
+                    metadata.passwordProtected = false;
+                    showStatus('API key saved successfully!', 'success');
+                }
+                
+                localStorage.removeItem('mistralApiKey');
+                localStorage.setItem('mistralApiKeyEncrypted', storageValue);
+                localStorage.setItem('mistralApiKeyMetadata', JSON.stringify(metadata));
+                sessionStorage.setItem('mistralApiKeyTemp', apiKey);
+                
+                document.getElementById('keyPassword').value = '';
+                document.getElementById('enableEncryption').checked = false;
+                toggleEncryption();
+                
+                checkApiKeyStatus();
+            } catch (error) {
+                console.error('Error saving API key:', error);
+                showStatus('Error saving API key. Please try again.', 'error');
+            }
+        }
+
+        function deleteApiKey() {
+            if (confirm('Are you sure you want to delete the stored API key?')) {
+                localStorage.removeItem('mistralApiKey');
+                localStorage.removeItem('mistralApiKeyEncrypted');
+                localStorage.removeItem('mistralApiKeyMetadata');
+                sessionStorage.removeItem('mistralApiKeyTemp');
+                
+                document.getElementById('apiKey').value = '';
+                showStatus('API key deleted successfully', 'info');
+                checkApiKeyStatus();
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const apiKeyInput = document.getElementById('apiKey');
+            const toggleBtn = document.getElementById('toggleVisibility');
+            
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleBtn.textContent = '👁️‍🗨️';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        async function checkApiKeyStatus() {
+            let savedKey = sessionStorage.getItem('mistralApiKeyTemp');
+
+            if (!savedKey) {
+                const encryptedKey = localStorage.getItem('mistralApiKeyEncrypted');
+                if (encryptedKey) {
+                    const metadata = JSON.parse(localStorage.getItem('mistralApiKeyMetadata') || '{}');
+                    
+                    if (metadata.passwordProtected) {
+                        updateKeyStatusDisplay(null, true);
+                        return;
+                    } else {
+                        savedKey = deobfuscateKey(encryptedKey);
+                    }
+                } else {
+                    savedKey = localStorage.getItem('mistralApiKey');
+                    if (savedKey) {
+                        localStorage.setItem('mistralApiKeyEncrypted', obfuscateKey(savedKey));
+                        localStorage.setItem('mistralApiKeyMetadata', JSON.stringify({ passwordProtected: false }));
+                        localStorage.removeItem('mistralApiKey');
+                    }
+                }
+            }
+            
+            updateKeyStatusDisplay(savedKey, false);
+        }
+        
+        function updateKeyStatusDisplay(savedKey, isLocked) {
+            const apiKeyInput = document.getElementById('apiKey');
+            const deleteBtn = document.getElementById('deleteKeyBtn');
+            const statusDiv = document.getElementById('apiKeyStatus');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            
+            if (isLocked) {
+                apiKeyInput.value = '';
+                deleteBtn.style.display = 'inline-block';
+                statusDiv.className = 'api-key-status missing';
+                statusIcon.textContent = '🔒';
+                statusText.textContent = 'API key locked (password required)';
+            } else if (savedKey) {
+                apiKeyInput.value = savedKey;
+                deleteBtn.style.display = 'inline-block';
+                statusDiv.className = 'api-key-status saved';
+                statusIcon.textContent = '✅';
+                statusText.textContent = `API key saved (${savedKey.slice(0, 8)}...)`;
+                sessionStorage.setItem('mistralApiKeyTemp', savedKey);
+            } else {
+                apiKeyInput.value = '';
+                deleteBtn.style.display = 'none';
+                statusDiv.className = 'api-key-status missing';
+                statusIcon.textContent = '⚠️';
+                statusText.textContent = 'No API key saved';
+            }
+        }
+
+        function showUnlockDialog() {
+            document.getElementById('unlockDialog').style.display = 'flex';
+            document.getElementById('unlockPassword').focus();
+        }
+        
+        function cancelUnlock() {
+            document.getElementById('unlockDialog').style.display = 'none';
+            document.getElementById('unlockPassword').value = '';
+            document.getElementById('unlockError').style.display = 'none';
+        }
+        
+        async function unlockApiKey() {
+            const password = document.getElementById('unlockPassword').value;
+            const errorDiv = document.getElementById('unlockError');
+            
+            if (!password) {
+                errorDiv.textContent = 'Please enter a password';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            const encryptedKey = localStorage.getItem('mistralApiKeyEncrypted');
+            const decryptedKey = await decryptApiKey(encryptedKey, password);
+
+            if (decryptedKey) {
+                sessionStorage.setItem('mistralApiKeyTemp', decryptedKey);
+                document.getElementById('apiKey').value = decryptedKey;
+                cancelUnlock();
+                checkApiKeyStatus();
+                showStatus('API key unlocked successfully', 'success');
+            } else {
+                errorDiv.textContent = 'Incorrect password. Please try again.';
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        // ============================================
+        // File Handling Functions
+        // ============================================
+        async function handleFile(file) {
+            const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'text/xml', 'application/xml'];
+
+            // Also check file extension for XML files as MIME type detection can be inconsistent
+            const fileName = file.name.toLowerCase();
+            const isXmlFile = fileName.endsWith('.xml') || fileName.endsWith('.isdoc');
+
+            if (!validTypes.includes(file.type) && !isXmlFile) {
+                showStatus('Please upload a valid invoice file (PDF, image, or ISDOC XML)', 'error');
+                return;
+            }
+
+            currentFile = file;
+            currentFileName = file.name;
+
+            // Handle ISDOC XML files differently
+            if (isXmlFile || file.type === 'text/xml' || file.type === 'application/xml') {
+                await handleIsdocFile(file);
+            } else {
+                await displayFile(file);
+                await extractInvoiceData(file);
+            }
+        }
+
+        async function displayFile(file) {
+            const splitContent = document.getElementById('splitContent');
+            splitContent.classList.add('active');
+            
+            if (file.type === 'application/pdf') {
+                await displayPDF(file);
+            } else {
+                displayImage(file);
+            }
+        }
+
+        async function displayPDF(file) {
+            const canvas = document.getElementById('pdfCanvas');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            canvas.style.display = 'block';
+            imagePreview.style.display = 'none';
+            
+            const arrayBuffer = await file.arrayBuffer();
+            // PDF.js 5.4.394 - Added isEvalSupported:false for security hardening
+            const pdf = await window.pdfjsLib.getDocument({
+                data: arrayBuffer,
+                isEvalSupported: false
+            }).promise;
+            const page = await pdf.getPage(1);
+            
+            const scale = 1.5;
+            const viewport = page.getViewport({scale});
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            const context = canvas.getContext('2d');
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            
+            await page.render(renderContext).promise;
+        }
+
+        function displayImage(file) {
+            const canvas = document.getElementById('pdfCanvas');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            canvas.style.display = 'none';
+            imagePreview.style.display = 'block';
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function fileToBase64(file) {
+            if (file.type === 'application/pdf') {
+                const arrayBuffer = await file.arrayBuffer();
+                // PDF.js 5.4.394 - Added isEvalSupported:false for security hardening
+                const pdf = await window.pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    isEvalSupported: false
+                }).promise;
+                const page = await pdf.getPage(1);
+                
+                const scale = 2;
+                const viewport = page.getViewport({scale});
+                
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                const context = canvas.getContext('2d');
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+                const dataUrl = canvas.toDataURL('image/png');
+                return dataUrl.split(',')[1];
+            } else {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
+
+        // ============================================
+        // ISDOC XML Processing Functions
+        // ============================================
+        async function handleIsdocFile(file) {
+            showLoading(true);
+            showStatus('Processing ISDOC XML file...', 'info');
+
+            try {
+                const text = await file.text();
+                const extractedData = parseIsdocXml(text);
+
+                if (extractedData) {
+                    // Show the form without image preview
+                    const splitContent = document.getElementById('splitContent');
+                    splitContent.classList.add('active');
+
+                    // Hide the preview section for XML files
+                    const previewSection = document.querySelector('.preview-section');
+                    previewSection.style.display = 'none';
+
+                    // Make data section full width
+                    const dataSection = document.querySelector('.data-section');
+                    dataSection.style.gridColumn = '1 / -1';
+
+                    await populateForm(extractedData);
+                    showStatus('ISDOC data extracted successfully! Review and edit as needed.', 'success');
+                } else {
+                    showStatus('Failed to parse ISDOC XML file. Please check the file format.', 'error');
+                }
+            } catch (error) {
+                console.error('Error processing ISDOC file:', error);
+                showStatus(`Error processing ISDOC file: ${error.message}`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function parseIsdocXml(xmlText) {
+            try {
+                // Parse the XML
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+                // Check for parser errors
+                const parserError = xmlDoc.querySelector('parsererror');
+                if (parserError) {
+                    throw new Error('Invalid XML format');
+                }
+
+                // Define ISDOC namespace - try common variations
+                const possibleNamespaces = [
+                    'http://isdoc.cz/namespace/2013',
+                    'http://isdoc.cz/namespace/2012',
+                    'http://isdocformat.cz/2013',
+                    'http://isdoc.cz/namespace'
+                ];
+
+                let namespace = null;
+                for (const ns of possibleNamespaces) {
+                    if (xmlDoc.documentElement.namespaceURI === ns ||
+                        xmlDoc.querySelector(`[xmlns="${ns}"]`)) {
+                        namespace = ns;
+                        break;
+                    }
+                }
+
+                // Helper function to get text content safely
+                function getTextOrEmpty(element) {
+                    return element ? (element.textContent || '').trim() : '';
+                }
+
+                // Helper function to find element with namespace support
+                function findElement(parent, selector) {
+                    // Try with namespace prefix first
+                    let element = parent.querySelector(selector);
+                    if (!element && namespace) {
+                        // Try without namespace (some parsers strip namespaces)
+                        const localSelector = selector.replace(/isdoc:/g, '');
+                        element = parent.querySelector(localSelector);
+                    }
+                    return element;
+                }
+
+                // Helper function to convert date format from YYYY-MM-DD to DD.MM.YYYY
+                function convertDateFormat(dateStr) {
+                    if (!dateStr) return '';
+
+                    try {
+                        const date = new Date(dateStr);
+                        if (isNaN(date.getTime())) return dateStr; // Return as-is if invalid
+
+                        const day = date.getDate().toString().padStart(2, '0');
+                        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                        const year = date.getFullYear();
+
+                        return `${day}.${month}.${year}`;
+                    } catch (e) {
+                        return dateStr; // Return as-is if conversion fails
+                    }
+                }
+
+                // Helper function to format amount to 2 decimal places
+                function formatAmount(amountStr) {
+                    if (!amountStr) return '0';
+
+                    try {
+                        const amount = parseFloat(amountStr);
+                        return amount.toFixed(2);
+                    } catch (e) {
+                        return amountStr;
+                    }
+                }
+
+                // Initialize result object
+                const result = {
+                    supplier_name: '',
+                    vat_number: '',
+                    invoice_number: '',
+                    date_of_sale: '',
+                    due_date: '',
+                    duzp: '',
+                    amount_without_VAT_21: '0',
+                    VAT_21: '0',
+                    amount_without_VAT_12: '0',
+                    VAT_12: '0',
+                    total_amount_with_VAT: '',
+                    reliable_VAT_payer: true
+                };
+
+                // Extract basic invoice information
+                const idElement = findElement(xmlDoc, 'isdoc\\:ID, ID');
+                result.invoice_number = getTextOrEmpty(idElement);
+
+                // Extract dates
+                const issueDateElement = findElement(xmlDoc, 'isdoc\\:IssueDate, IssueDate');
+                result.date_of_sale = convertDateFormat(getTextOrEmpty(issueDateElement));
+
+                const taxPointDateElement = findElement(xmlDoc, 'isdoc\\:TaxPointDate, TaxPointDate');
+                result.duzp = convertDateFormat(getTextOrEmpty(taxPointDateElement));
+
+                const dueDateElement = findElement(xmlDoc, 'isdoc\\:PaymentMeans isdoc\\:Payment isdoc\\:Details isdoc\\:PaymentDueDate, PaymentMeans Payment Details PaymentDueDate');
+                result.due_date = convertDateFormat(getTextOrEmpty(dueDateElement));
+
+                // Extract supplier information
+                let supplierNameElement = findElement(xmlDoc, 'isdoc\\:AccountingSupplierParty isdoc\\:Party isdoc\\:PartyName isdoc\\:Name, AccountingSupplierParty Party PartyName Name');
+                if (!supplierNameElement) {
+                    supplierNameElement = findElement(xmlDoc, 'isdoc\\:AccountingSupplierParty isdoc\\:Party isdoc\\:PartyName isdoc\\:n, AccountingSupplierParty Party PartyName n');
+                }
+                result.supplier_name = getTextOrEmpty(supplierNameElement);
+
+                const vatNumberElement = findElement(xmlDoc, 'isdoc\\:AccountingSupplierParty isdoc\\:Party isdoc\\:PartyTaxScheme isdoc\\:CompanyID, AccountingSupplierParty Party PartyTaxScheme CompanyID');
+                result.vat_number = getTextOrEmpty(vatNumberElement);
+
+                // Extract total amount
+                const totalAmountElement = findElement(xmlDoc, 'isdoc\\:LegalMonetaryTotal isdoc\\:TaxInclusiveAmount, LegalMonetaryTotal TaxInclusiveAmount');
+                result.total_amount_with_VAT = formatAmount(getTextOrEmpty(totalAmountElement));
+
+                // Extract VAT information from TaxSubTotal elements
+                const taxSubtotals = xmlDoc.querySelectorAll('isdoc\\:TaxTotal isdoc\\:TaxSubTotal, TaxTotal TaxSubTotal');
+
+                for (const subtotal of taxSubtotals) {
+                    // Get the VAT percentage
+                    const percentElement = subtotal.querySelector('isdoc\\:TaxCategory isdoc\\:Percent, TaxCategory Percent');
+                    if (percentElement) {
+                        const vatPercent = parseFloat(getTextOrEmpty(percentElement));
+
+                        // Get amounts
+                        const taxableAmountElement = subtotal.querySelector('isdoc\\:TaxableAmount, TaxableAmount');
+                        const taxAmountElement = subtotal.querySelector('isdoc\\:TaxAmount, TaxAmount');
+
+                        const taxableAmount = getTextOrEmpty(taxableAmountElement);
+                        const taxAmount = getTextOrEmpty(taxAmountElement);
+
+                        // Extract VAT amounts, skipping 0% rates (these are for deposits/advances)
+                        if (vatPercent === 21.0) {
+                            result.amount_without_VAT_21 = formatAmount(taxableAmount);
+                            result.VAT_21 = formatAmount(taxAmount);
+                        } else if (vatPercent === 12.0) {
+                            result.amount_without_VAT_12 = formatAmount(taxableAmount);
+                            result.VAT_12 = formatAmount(taxAmount);
+                        }
+                        // Skip 0% VAT (used for deposits/advances)
+                    }
+                }
+
+                return result;
+
+            } catch (error) {
+                console.error('Error parsing ISDOC XML:', error);
+                return null;
+            }
+        }
+
+        // ============================================
+        // VAT Checking Functions
+        // ============================================
+        async function checkVatReliability(vatNumber) {
+            try {
+                const result = await apiCall('/check-vat', 'POST', { vat_number: vatNumber });
+                return result;
+            } catch (error) {
+                console.error('Error checking VAT reliability:', error);
+                return {
+                    status: 'error',
+                    reliable_vat_payer: 'true',
+                    message: 'VAT check service unavailable',
+                    auto_checked: false
+                };
+            }
+        }
+
+        // ============================================
+        // Number Normalization Helper
+        // ============================================
+        // Normalize number format - convert Czech format (comma) to English format (dot)
+        function normalizeNumber(value) {
+            if (!value || value === '') return '';
+
+            // Convert to string if it's a number
+            let str = String(value).trim();
+
+            // If it contains comma, replace it with dot (Czech to English format)
+            if (str.includes(',')) {
+                str = str.replace(/\s/g, ''); // Remove spaces (thousands separator)
+                str = str.replace(',', '.'); // Replace comma with dot
+            }
+
+            return str;
+        }
+
+        // ============================================
+        // Invoice Extraction Functions
+        // ============================================
+        async function extractInvoiceData(file) {
+            let apiKey = sessionStorage.getItem('mistralApiKeyTemp');
+
+            if (!apiKey) {
+                const encryptedKey = localStorage.getItem('mistralApiKeyEncrypted');
+                if (encryptedKey) {
+                    const metadata = JSON.parse(localStorage.getItem('mistralApiKeyMetadata') || '{}');
+                    if (metadata.passwordProtected) {
+                        showStatus('Please unlock your API key first', 'error');
+                        showUnlockDialog();
+                        return;
+                    } else {
+                        apiKey = deobfuscateKey(encryptedKey);
+                    }
+                }
+            }
+
+            if (!apiKey) {
+                showStatus('Please enter your Mistral API key first', 'error');
+                document.querySelector('.api-key-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                document.getElementById('apiKey').focus();
+                return;
+            }
+
+            showLoading(true);
+            showStatus('Processing invoice...', 'info');
+
+            try {
+                const base64 = await fileToBase64(file);
+
+                // Determine the correct MIME type for Mistral API
+                // PDFs are converted to PNG, so we need to specify image/png
+                const mimeType = file.type === 'application/pdf' ? 'image/png' : file.type;
+
+                const systemPrompt = `You are an AI system designed to extract specific information from invoices and create a structured JSON output. Your task is to analyze the provided invoice and extract the following information:
+
+<invoice_fields>
+{{supplier_name}} description: Extract the legal name of the entity that issued the invoice. Follow this priority order: 1) Primary: Look for the company name that includes a legal entity designation (e.g., s.r.o., a.s., spol. s r.o., LLC, Inc., Corp., Ltd., GmbH, SA, etc.). This is typically the official legal name and should always be prioritized over brand names or trade names. 2) Secondary: If no legal entity designation is present, look for the name that appears in the official invoice header, sender address, or tax/registration number section. 3) Individual persons: If the invoice is issued by an individual (no legal entity designation present), extract the full personal name. Prioritize legal names over brand names, even if the brand name is more prominently displayed.
+
+{{vat_number}} description: VAT number of "Dodavatel/Prodávající" (Supplier/Seller) - never extract VAT number of "Odběratel". "Odběratel" VAT number is CZ7104240792 - never use in extraction. VAT number is a string beginning with 2 letters, usually CZ, followed by 8 or 9 digits for a company and 10 digits for an individual person. IMPORTANT: If you see a string starting with "C" followed by what appears to be a digit "2", interpret this as "CZ" - the second character should always be the letter "Z" when the first character is "C". CRITICAL: Some companies have multiple VAT identifiers - if you see both "DIČ" and any variation containing "DPH" (such as "DIČ k DPH", "DPH DIČ", "IČ DPH", or VAT number labeled with "DPH"), you MUST extract the number associated with DPH as this is the VAT number used for VAT tax declarations. Only use the plain "DIČ" if no DPH-related VAT number is present. This field is mandatory - every invoice must have a VAT number. Look carefully in the header, footer, or company details section if not immediately visible.
+
+{{invoice_number}} description: Invoice number is the unique identifier of this specific invoice document. Look for fields labeled "číslo faktury", "faktura číslo", "daňový doklad číslo", or "doklad číslo". AVOID extracting "číslo plátce" (payers number), "klientské číslo" (client number), "zákaznické číslo" (customer number), or "číslo objednávky" (order number). This field is mandatory - every invoice must have an invoice number. The invoice number is typically displayed prominently near the top of the invoice and is the number that identifies this particular billing document. If you cannot find a clearly labeled invoice number, use the "variabilní symbol" (variable symbol) value as it often serves as the invoice number. Extract only numeric characters from this field, removing any letters or special characters.
+
+{{date_of_sale}} description: Date when the invoice was issued. Usually field with this date is named "Datum vystavení" or "Vystaveno". Use format dd.mm.yyyy even if there is a different format on the invoice.
+
+{{due_date}} description: Date when the invoice is due for payment. Usually field with this date is named "Datum splatnosti". If you can not find this date, use same date as date of sale. Use format dd.mm.yyyy even if there is a different format on the invoice.
+
+{{duzp}} description: Date when is recognized VAT tax. Usually field with this date is named "Datum uskutečnění zdanitelného plnění" or some form abbreviated from this text or "DUZP" only. This field must be always filled. If you can not find this date, use same date as date of sale. Use format dd.mm.yyyy even if there is a different format on the invoice.
+
+{{amount_without_VAT_21}} description: Total amount where VAT rate 21% is applied. Use the value before VAT is applied. If on the invoice there is no amount related to VAT rate 21%, use value 0 for this field.
+
+{{VAT_21}} description: Total amount of 21% VAT. Usually listed in the same line as total amount without 21% VAT in the table where the summary of VAT is shown. If there is no value, use 0 in this field. This field cannot be 0 if amount_without_VAT_21 is a number.
+
+{{amount_without_VAT_12}} description: Total amount where VAT rate 12% is applied. Use the value before VAT is applied. If on the invoice there is no amount related to VAT rate 12%, use value 0 for this field.
+
+{{VAT_12}} description: Total amount of 12% VAT. Usually listed in the same line as total amount without 12% VAT in the table where the summary of VAT is shown. If there is no value, use 0 in this field. This field cannot be 0 if amount_without_VAT_12 is a number.
+
+{{total_amount_with_VAT}} description: Total amount on the issued invoice with VAT. Mathematical sum of base + VAT before rounding (e.g., 615,89 CZK, not 616,00 CZK). Look for "Celkem" in the VAT summary table or similar recapitulation section. Exclude any "Zaokrouhlení" (rounding) adjustments from this amount.
+</invoice_fields>
+
+Instructions:
+1. Carefully examine the invoice and extract the required information.
+2. Format the information into a JSON structure.
+
+After completing the extraction process, format the information exactly into the following JSON structure:
+
+{
+  "supplier_name": "",
+  "vat_number": "",
+  "invoice_number": "",
+  "date_of_sale": "",
+  "due_date": "",
+  "duzp": "",
+  "amount_without_VAT_21": "",
+  "VAT_21": "",
+  "amount_without_VAT_12": "",
+  "VAT_12": "",
+  "total_amount_with_VAT": ""
+}
+
+Provide only the JSON output without any additional description or explanation.`;
+
+                const requestBody = {
+                    messages: [
+                        {
+                            role: "system",
+                            content: systemPrompt
+                        },
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "text",
+                                    text: "Please extract the invoice data and return it in the specified JSON format."
+                                },
+                                {
+                                    type: "image_url",
+                                    image_url: {
+                                        url: `data:${mimeType};base64,${base64}`
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    temperature: 0.0,
+                    max_tokens: 300,
+                    top_p: 0.95
+                };
+
+                // Call Mistral API via integrated proxy endpoint
+                const response = await fetch('http://localhost:3002/api/mistral/chat', {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`API Error: ${response.status} - ${errorData}`);
+                }
+
+                const data = await response.json();
+                const extractedData = JSON.parse(data.choices[0].message.content);
+
+                console.log('Raw extracted data:', extractedData);
+
+                // Normalize all numeric fields immediately after extraction
+                const numericFields = [
+                    'amount_without_VAT_21',
+                    'VAT_21',
+                    'amount_without_VAT_12',
+                    'VAT_12',
+                    'total_amount_with_VAT'
+                ];
+
+                numericFields.forEach(field => {
+                    if (extractedData[field]) {
+                        const original = extractedData[field];
+                        extractedData[field] = normalizeNumber(extractedData[field]);
+                        console.log(`Normalized ${field}: "${original}" → "${extractedData[field]}"`);
+                    }
+                });
+
+                console.log('Normalized data:', extractedData);
+
+                populateForm(extractedData);
+                showStatus('Data extracted successfully! Review and edit as needed.', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`Error: ${error.message}. Note: Direct API calls from browser may be blocked by CORS. Consider using a proxy server.`, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function populateForm(data) {
+            // Data is already normalized at this point
+            for (const [key, value] of Object.entries(data)) {
+                const element = document.getElementById(key);
+                if (element && key !== 'reliable_VAT_payer') {
+                    element.value = value || '';
+                }
+            }
+            
+            // Handle VAT payer reliability with automatic checking
+            const vatSelect = document.getElementById('reliable_VAT_payer');
+            const vatNumber = data.vat_number;
+            
+            if (vatNumber && vatNumber.trim()) {
+                // Show loading status
+                vatSelect.style.background = '#fff3cd';
+                vatSelect.style.borderColor = '#ffc107';
+                
+                try {
+                    const vatCheck = await checkVatReliability(vatNumber);
+                    
+                    if (vatCheck.auto_checked && vatCheck.status === 'success') {
+                        vatSelect.value = vatCheck.reliable_vat_payer;
+                        vatSelect.style.background = '#d4edda';
+                        vatSelect.style.borderColor = '#28a745';
+                        
+                        // Add visual indicator for auto-checked
+                        let indicator = document.getElementById('vat-auto-indicator');
+                        if (!indicator) {
+                            indicator = document.createElement('small');
+                            indicator.id = 'vat-auto-indicator';
+                            indicator.style.color = '#28a745';
+                            indicator.style.marginTop = '5px';
+                            indicator.style.display = 'block';
+                            vatSelect.parentNode.appendChild(indicator);
+                        }
+                        indicator.textContent = `✓ Auto-checked: ${vatCheck.message}`;
+                        
+                    } else {
+                        // Auto-check failed, use default
+                        vatSelect.value = data.reliable_VAT_payer || 'true';
+                        vatSelect.style.background = '#f8d7da';
+                        vatSelect.style.borderColor = '#dc3545';
+                        
+                        let indicator = document.getElementById('vat-auto-indicator');
+                        if (!indicator) {
+                            indicator = document.createElement('small');
+                            indicator.id = 'vat-auto-indicator';
+                            indicator.style.color = '#dc3545';
+                            indicator.style.marginTop = '5px';
+                            indicator.style.display = 'block';
+                            vatSelect.parentNode.appendChild(indicator);
+                        }
+                        indicator.textContent = `⚠ Auto-check failed: ${vatCheck.message}. Please verify manually.`;
+                    }
+                } catch (error) {
+                    // Error in VAT checking, use default
+                    vatSelect.value = data.reliable_VAT_payer || 'true';
+                    vatSelect.style.background = '#f8d7da';
+                    vatSelect.style.borderColor = '#dc3545';
+                    console.error('VAT check error:', error);
+                }
+            } else {
+                // No VAT number, use default
+                vatSelect.value = data.reliable_VAT_payer || 'true';
+                vatSelect.style.background = '';
+                vatSelect.style.borderColor = '';
+            }
+            
+            // Allow manual changes to override auto-check
+            vatSelect.addEventListener('change', function() {
+                this.style.background = '';
+                this.style.borderColor = '';
+                const indicator = document.getElementById('vat-auto-indicator');
+                if (indicator) {
+                    indicator.textContent = 'Manually set by user';
+                    indicator.style.color = '#6c757d';
+                }
+            }, { once: true });
+        }
+
+        function downloadJSON() {
+            const formData = new FormData(document.getElementById('dataForm'));
+            const jsonData = {};
+
+            const numericFields = [
+                'amount_without_VAT_21',
+                'VAT_21',
+                'amount_without_VAT_12',
+                'VAT_12',
+                'total_amount_with_VAT'
+            ];
+
+            for (const [key, value] of formData.entries()) {
+                if (key === 'reliable_VAT_payer') {
+                    if (value === 'true') {
+                        jsonData[key] = true;
+                    } else if (value === 'false') {
+                        jsonData[key] = false;
+                    } else {
+                        jsonData[key] = "NA";
+                    }
+                } else if (numericFields.includes(key)) {
+                    // Normalize numeric fields
+                    jsonData[key] = normalizeNumber(value);
+                } else {
+                    jsonData[key] = value;
+                }
+            }
+            
+            const dataStr = JSON.stringify(jsonData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `${currentFileName.split('.')[0]}_extracted.json`;
+            link.click();
+            
+            showStatus('JSON file downloaded successfully!', 'success');
+        }
+
+        async function addToTracker() {
+            const formData = new FormData(document.getElementById('dataForm'));
+            const jsonData = {};
+
+            const numericFields = [
+                'amount_without_VAT_21',
+                'VAT_21',
+                'amount_without_VAT_12',
+                'VAT_12',
+                'total_amount_with_VAT'
+            ];
+
+            for (const [key, value] of formData.entries()) {
+                if (key === 'reliable_VAT_payer') {
+                    if (value === 'true') {
+                        jsonData[key] = true;
+                    } else if (value === 'false') {
+                        jsonData[key] = false;
+                    } else {
+                        jsonData[key] = "NA";
+                    }
+                } else if (numericFields.includes(key)) {
+                    // Normalize numeric fields before saving to database
+                    jsonData[key] = normalizeNumber(value);
+                } else {
+                    jsonData[key] = value;
+                }
+            }
+            
+            console.log('Sending to database:', jsonData);
+
+            try {
+                const addedInvoice = await apiCall('/invoices', 'POST', jsonData);
+                
+                // Add to local array for immediate UI update
+                invoicesData.push(addedInvoice);
+                
+                // Show notification
+                const notification = document.getElementById('trackerNotification');
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+                
+                showStatus('Invoice added to tracker successfully!', 'success');
+            } catch (error) {
+                if (error.message.includes('already exists')) {
+                    const confirmAdd = confirm('This invoice appears to be a duplicate. Do you want to add it anyway?');
+                    if (!confirmAdd) {
+                        return;
+                    }
+                    showStatus('Duplicate invoice not added', 'info');
+                } else {
+                    showStatus(`Error adding invoice: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('dataForm').reset();
+            document.getElementById('reliable_VAT_payer').value = 'true';
+
+            // Clear VAT auto-check indicators
+            const vatSelect = document.getElementById('reliable_VAT_payer');
+            vatSelect.style.background = '';
+            vatSelect.style.borderColor = '';
+
+            const indicator = document.getElementById('vat-auto-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+
+            // Reset layout for both image and XML workflows
+            const previewSection = document.querySelector('.preview-section');
+            const dataSection = document.querySelector('.data-section');
+            previewSection.style.display = '';
+            dataSection.style.gridColumn = '';
+
+            document.getElementById('splitContent').classList.remove('active');
+            document.getElementById('fileInput').value = '';
+            currentFile = null;
+            currentFileName = '';
+            showStatus('Ready for new invoice', 'info');
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message ${type} show`;
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.classList.toggle('active', show);
+        }
+
+        // ============================================
+        // Tracker Functions
+        // ============================================
+        function getCurrentQuarter() {
+            const now = new Date();
+            return Math.floor((now.getMonth()) / 3) + 1;
+        }
+
+        function getCurrentYear() {
+            return new Date().getFullYear();
+        }
+
+        function parseDate(dateStr) {
+            const [day, month, year] = dateStr.split('.');
+            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        }
+
+        function getQuarter(dateStr) {
+            const date = parseDate(dateStr);
+            return Math.floor(date.getMonth() / 3) + 1;
+        }
+
+        function getYear(dateStr) {
+            const date = parseDate(dateStr);
+            return date.getFullYear();
+        }
+
+        function getSupplierStatus(invoice) {
+            // Handle SQLite integer conversions: true=1, false=0, "NA"=NA
+            if (invoice.reliable_VAT_payer === "NA" || invoice.reliable_VAT_payer === "na") {
+                return { type: 'not_vat_payer', text: '🔸 Not VAT payer', isReliable: true };
+            } else if (invoice.reliable_VAT_payer === 1 || invoice.reliable_VAT_payer === '1' || invoice.reliable_VAT_payer === 'true' || invoice.reliable_VAT_payer === true) {
+                return { type: 'reliable', text: '✅ Reliable', isReliable: true };
+            } else {
+                return { type: 'unreliable', text: '⚠️ Unreliable', isReliable: false };
+            }
+        }
+
+        function getSupplierColor(invoice, index) {
+            const status = getSupplierStatus(invoice);
+            if (status.type === 'not_vat_payer') {
+                return '#6b7280'; // Grey for not VAT payer
+            } else if (status.type === 'unreliable') {
+                return '#dc2626'; // Red for unreliable
+            } else {
+                // Use the full color palette for reliable suppliers
+                return colors[index % colors.length];
+            }
+        }
+
+        function formatCsvNumber(value) {
+            return parseFloat(value || 0).toFixed(2).replace('.', ',');
+        }
+
+        async function saveTrackerData() {
+            // No longer needed - data is saved automatically via API calls
+            console.log('Data automatically saved to database');
+        }
+
+        async function loadTrackerData() {
+            try {
+                invoicesData = await apiCall('/invoices');
+                console.log(`Loaded ${invoicesData.length} invoices from database`);
+            } catch (error) {
+                console.error('Error loading tracker data:', error);
+                showStatus('Error loading data from database', 'error');
+                invoicesData = []; // Fallback to empty array
+            }
+        }
+
+        async function clearData() {
+            if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                try {
+                    await apiCall('/invoices', 'DELETE');
+                    invoicesData = [];
+                    updateTrackerDisplay();
+                    showStatus('All data cleared successfully', 'success');
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    showStatus('Error clearing data from database', 'error');
+                }
+            }
+        }
+
+        function updateTrackerDisplay() {
+            updateStats();
+            updateQuarterTabs();
+            updateCharts();
+            updateSuppliersTable();
+        }
+
+        async function updateStats() {
+            try {
+                const stats = await apiCall(`/stats?quarter=${currentQuarter}&year=${currentYear}`);
+                
+                document.getElementById('totalInvoices').textContent = stats.totalInvoices.toLocaleString();
+                document.getElementById('totalAmount').textContent = stats.totalAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+                document.getElementById('currentQuarterVAT').textContent = stats.currentQuarterVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+                document.getElementById('ytdVAT').textContent = stats.ytdVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+            } catch (error) {
+                console.error('Error updating stats:', error);
+                // Fallback to local calculation if API fails
+                updateStatsLocal();
+            }
+        }
+
+        // Fallback function for local stats calculation
+        function updateStatsLocal() {
+            const selectedQuarterInvoices = invoicesData.filter(invoice => 
+                getQuarter(invoice.duzp) === currentQuarter && getYear(invoice.duzp) === currentYear
+            );
+            
+            const totalInvoices = selectedQuarterInvoices.length;
+            const totalAmount = selectedQuarterInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.total_amount_with_VAT || 0), 0);
+            
+            const currentQuarterVAT = invoicesData
+                .filter(invoice => getQuarter(invoice.duzp) === currentQuarter && getYear(invoice.duzp) === currentYear)
+                .reduce((sum, invoice) => sum + parseFloat(invoice.VAT_21 || 0) + parseFloat(invoice.VAT_12 || 0), 0);
+            
+            const ytdVAT = invoicesData
+                .filter(invoice => getYear(invoice.duzp) === currentYear)
+                .reduce((sum, invoice) => sum + parseFloat(invoice.VAT_21 || 0) + parseFloat(invoice.VAT_12 || 0), 0);
+
+            document.getElementById('totalInvoices').textContent = totalInvoices.toLocaleString();
+            document.getElementById('totalAmount').textContent = totalAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+            document.getElementById('currentQuarterVAT').textContent = currentQuarterVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+            document.getElementById('ytdVAT').textContent = ytdVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 });
+        }
+
+        function updateQuarterTabs() {
+            const tabsContainer = document.getElementById('quarterTabs');
+            
+            const quarters = [...new Set(invoicesData
+                .filter(invoice => getYear(invoice.duzp) === currentYear)
+                .map(invoice => getQuarter(invoice.duzp)))]
+                .sort((a, b) => a - b);
+
+            tabsContainer.innerHTML = '';
+            
+            if (quarters.length === 0) {
+                quarters.push(currentQuarter);
+            }
+
+            quarters.forEach(quarter => {
+                const tab = document.createElement('button');
+                tab.className = `quarter-tab ${quarter === currentQuarter ? 'active' : ''}`;
+                tab.textContent = `Q${quarter} ${currentYear}`;
+                tab.onclick = () => selectQuarter(quarter);
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function selectQuarter(quarter) {
+            currentQuarter = quarter;
+            document.querySelectorAll('.quarter-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            updateTrackerDisplay();
+        }
+
+        function updateCharts() {
+            updateExpenseChart();
+        }
+
+        function updateExpenseChart() {
+            const ctx = document.getElementById('expenseChart');
+            if (!ctx) {
+                return;
+            }
+            
+            const context = ctx.getContext('2d');
+            
+            if (expenseChart) {
+                expenseChart.destroy();
+                expenseChart = null;
+            }
+
+            // Filter invoices by selected quarter and year
+            const selectedQuarterInvoices = invoicesData.filter(invoice => 
+                getQuarter(invoice.duzp) === currentQuarter && getYear(invoice.duzp) === currentYear
+            );
+
+            if (selectedQuarterInvoices.length === 0) {
+                return;
+            }
+
+            const supplierData = {};
+            selectedQuarterInvoices.forEach((invoice, index) => {
+                const supplier = invoice.supplier_name;
+                const amount = parseFloat(invoice.total_amount_with_VAT || 0);
+                const status = getSupplierStatus(invoice);
+                
+                if (!supplierData[supplier]) {
+                    supplierData[supplier] = { 
+                        amount: 0, 
+                        status: status,
+                        invoice: invoice
+                    };
+                }
+                supplierData[supplier].amount += amount;
+            });
+
+            const suppliers = Object.keys(supplierData);
+            
+            if (suppliers.length === 0) {
+                return;
+            }
+
+            const amounts = suppliers.map(supplier => supplierData[supplier].amount);
+            const backgroundColors = suppliers.map((supplier, index) => 
+                getSupplierColor(supplierData[supplier].invoice, index)
+            );
+
+            const chartData = {
+                labels: suppliers,
+                datasets: [{
+                    data: amounts,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            };
+
+            try {
+                expenseChart = new Chart(context, {
+                    type: 'pie',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1.4,
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 30,
+                                left: 20,
+                                right: 20
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 11
+                                    },
+                                    boxWidth: 10
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed;
+                                        const total = amounts.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${context.label}: ${value.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })} CZK (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        elements: {
+                            arc: {
+                                borderWidth: 2
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error creating pie chart:', error);
+            }
+        }
+
+        async function updateSuppliersTable() {
+            try {
+                const suppliers = await apiCall(`/suppliers?quarter=${currentQuarter}&year=${currentYear}`);
+                const tbody = document.getElementById('suppliersTableBody');
+                
+                if (!tbody) {
+                    return;
+                }
+                
+                if (suppliers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="no-data">No data available for selected quarter. Add invoices from the extractor or upload JSON files.</td></tr>';
+                    return;
+                }
+
+                const tableRows = suppliers.map(supplier => {
+                    let rowClass = '';
+                    let statusText = '';
+                    
+                    // Handle SQLite integer conversions: true=1, false=0, "NA"=NA
+                    if (supplier.status === 'NA' || supplier.status === 'na') {
+                        rowClass = 'not-vat-payer';
+                        statusText = '🔸 Not VAT payer';
+                    } else if (supplier.status === 1 || supplier.status === '1' || supplier.status === 'true' || supplier.status === true) {
+                        statusText = '✅ Reliable';
+                    } else if (supplier.status === 0 || supplier.status === '0' || supplier.status === 'false' || supplier.status === false) {
+                        rowClass = 'unreliable';
+                        statusText = '⚠️ Unreliable';
+                    } else {
+                        // Fallback for any unexpected values
+                        rowClass = 'unreliable';
+                        statusText = '❓ Unknown';
+                    }
+                    
+                    // XSS Prevention: Escape user-controlled data before HTML insertion
+                    const safeName = escapeHtml(supplier.name) || 'N/A';
+                    const safeVatNumber = escapeHtml(supplier.vatNumber);
+                    
+                    return `
+                        <tr class="${rowClass}">
+                            <td>${safeName}</td>
+                            <td>${safeVatNumber}</td>
+                            <td class="amount">${supplier.totalAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })}</td>
+                            <td class="vat-amount">${supplier.totalVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })}</td>
+                            <td>${supplier.invoiceCount}</td>
+                            <td>${statusText}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                tbody.innerHTML = tableRows;
+            } catch (error) {
+                console.error('Error updating suppliers table:', error);
+                // Fallback to local calculation if API fails
+                updateSuppliersTableLocal();
+            }
+        }
+
+        // Fallback function for local suppliers table
+        function updateSuppliersTableLocal() {
+            const tbody = document.getElementById('suppliersTableBody');
+            
+            if (!tbody) {
+                return;
+            }
+            
+            const selectedQuarterInvoices = invoicesData.filter(invoice => 
+                getQuarter(invoice.duzp) === currentQuarter && getYear(invoice.duzp) === currentYear
+            );
+            
+            if (selectedQuarterInvoices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">No data available for selected quarter. Add invoices from the extractor or upload JSON files.</td></tr>';
+                return;
+            }
+
+            const supplierData = {};
+            selectedQuarterInvoices.forEach((invoice, index) => {
+                const vatNumber = invoice.vat_number || '';
+                const supplierKey = vatNumber ? `${invoice.supplier_name}_${vatNumber}` : invoice.supplier_name;
+                
+                const amount = parseFloat(invoice.total_amount_with_VAT || 0);
+                const vat = parseFloat(invoice.VAT_21 || 0) + parseFloat(invoice.VAT_12 || 0);
+                const status = getSupplierStatus(invoice);
+                
+                if (!supplierData[supplierKey]) {
+                    supplierData[supplierKey] = {
+                        name: invoice.supplier_name,
+                        vatNumber: vatNumber || 'N/A',
+                        totalAmount: 0,
+                        totalVAT: 0,
+                        invoiceCount: 0,
+                        status: status
+                    };
+                }
+                
+                supplierData[supplierKey].totalAmount += amount;
+                supplierData[supplierKey].totalVAT += vat;
+                supplierData[supplierKey].invoiceCount++;
+            });
+
+            const sortedSuppliers = Object.values(supplierData).sort((a, b) => b.totalAmount - a.totalAmount);
+
+            if (sortedSuppliers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">No supplier data found for selected quarter.</td></tr>';
+                return;
+            }
+
+            const tableRows = sortedSuppliers.map(supplier => {
+                let rowClass = '';
+                if (supplier.status.type === 'unreliable') {
+                    rowClass = 'unreliable';
+                } else if (supplier.status.type === 'not_vat_payer') {
+                    rowClass = 'not-vat-payer';
+                }
+                
+                // XSS Prevention: Escape user-controlled data before HTML insertion
+                const safeName = escapeHtml(supplier.name) || 'N/A';
+                const safeVatNumber = escapeHtml(supplier.vatNumber);
+                
+                return `
+                    <tr class="${rowClass}">
+                        <td>${safeName}</td>
+                        <td>${safeVatNumber}</td>
+                        <td class="amount">${supplier.totalAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })}</td>
+                        <td class="vat-amount">${supplier.totalVAT.toLocaleString('cs-CZ', { minimumFractionDigits: 2 })}</td>
+                        <td>${supplier.invoiceCount}</td>
+                        <td>${supplier.status.text}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = tableRows;
+        }
+
+        function exportQuarterlyData() {
+            if (invoicesData.length === 0) {
+                alert('No data to export. Please upload some invoices first.');
+                return;
+            }
+
+            const quarter = prompt(`Enter quarter to export (1-4):`, currentQuarter);
+            if (!quarter || quarter < 1 || quarter > 4) {
+                alert('Please enter a valid quarter (1-4).');
+                return;
+            }
+
+            const year = prompt(`Enter year to export:`, currentYear);
+            if (!year || isNaN(year)) {
+                alert('Please enter a valid year.');
+                return;
+            }
+
+            const quarterData = invoicesData.filter(invoice => {
+                const invoiceQuarter = getQuarter(invoice.duzp);
+                const invoiceYear = getYear(invoice.duzp);
+                return invoiceQuarter == quarter && invoiceYear == year;
+            });
+
+            if (quarterData.length === 0) {
+                alert(`No invoices found for Q${quarter} ${year}.`);
+                return;
+            }
+
+            const csvHeaders = [
+                'Invoice Number',
+                'Supplier Name',
+                'VAT Number',
+                'Date of Tax Liability (DUZP)',
+                'Amount without VAT 21%',
+                'VAT 21%',
+                'Amount without VAT 12%', 
+                'VAT 12%',
+                'Total Amount with VAT',
+                'Reliable VAT Payer',
+                'Quarter',
+                'Year'
+            ];
+
+            const csvRows = quarterData.map(invoice => {
+                const reliableStatus = invoice.reliable_VAT_payer === true ? 'Yes' : 
+                                    invoice.reliable_VAT_payer === 'NA' ? 'Not Applicable' : 'No';
+                
+                return [
+                    `"${invoice.invoice_number || 'N/A'}"`,
+                    `"${invoice.supplier_name || 'N/A'}"`,
+                    `"${invoice.vat_number || 'N/A'}"`,
+                    `"${invoice.duzp || 'N/A'}"`,
+                    `"${formatCsvNumber(invoice.amount_without_VAT_21)}"`,
+                    `"${formatCsvNumber(invoice.VAT_21)}"`,
+                    `"${formatCsvNumber(invoice.amount_without_VAT_12)}"`,
+                    `"${formatCsvNumber(invoice.VAT_12)}"`,
+                    `"${formatCsvNumber(invoice.total_amount_with_VAT)}"`,
+                    `"${reliableStatus}"`,
+                    `"${quarter}"`,
+                    `"${year}"`
+                ].join(',');
+            });
+
+            const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `invoices_Q${quarter}_${year}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert(`Successfully exported ${quarterData.length} invoices for Q${quarter} ${year} to CSV file.`);
+            } else {
+                alert('Your browser does not support file downloads.');
+            }
+        }
+
+        function exportAllData() {
+            if (invoicesData.length === 0) {
+                alert('No data to export. Please upload some invoices first.');
+                return;
+            }
+
+            const csvHeaders = [
+                'Invoice Number',
+                'Supplier Name', 
+                'VAT Number',
+                'Date of Tax Liability (DUZP)',
+                'Amount without VAT 21%',
+                'VAT 21%',
+                'Amount without VAT 12%',
+                'VAT 12%', 
+                'Total Amount with VAT',
+                'Reliable VAT Payer',
+                'Quarter',
+                'Year'
+            ];
+
+            const csvRows = invoicesData.map(invoice => {
+                const reliableStatus = invoice.reliable_VAT_payer === true ? 'Yes' : 
+                                    invoice.reliable_VAT_payer === 'NA' ? 'Not Applicable' : 'No';
+                const quarter = getQuarter(invoice.duzp);
+                const year = getYear(invoice.duzp);
+                
+                return [
+                    `"${invoice.invoice_number || 'N/A'}"`,
+                    `"${invoice.supplier_name || 'N/A'}"`,
+                    `"${invoice.vat_number || 'N/A'}"`,
+                    `"${invoice.duzp || 'N/A'}"`,
+                    `"${formatCsvNumber(invoice.amount_without_VAT_21)}"`,
+                    `"${formatCsvNumber(invoice.VAT_21)}"`,
+                    `"${formatCsvNumber(invoice.amount_without_VAT_12)}"`,
+                    `"${formatCsvNumber(invoice.VAT_12)}"`,
+                    `"${formatCsvNumber(invoice.total_amount_with_VAT)}"`,
+                    `"${reliableStatus}"`,
+                    `"${quarter}"`,
+                    `"${year}"`
+                ].join(',');
+            });
+
+            const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `all_invoices_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert(`Successfully exported ${invoicesData.length} invoices to CSV file.`);
+            } else {
+                alert('Your browser does not support file downloads.');
+            }
+        }
+
+        async function handleTrackerFileUpload(event) {
+            const files = Array.from(event.target.files);
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const file of files) {
+                try {
+                    const text = await file.text();
+                    const jsonData = JSON.parse(text);
+                    
+                    const validation = validateInvoiceData(jsonData);
+                    
+                    if (validation.isValid) {
+                        try {
+                            const addedInvoice = await apiCall('/invoices', 'POST', jsonData);
+                            // Add to local array for immediate UI update
+                            invoicesData.push(addedInvoice);
+                            successCount++;
+                        } catch (apiError) {
+                            if (apiError.message.includes('already exists')) {
+                                console.log(`Skipped duplicate invoice from ${file.name}`);
+                            } else {
+                                console.error(`API error for file ${file.name}:`, apiError);
+                                errorCount++;
+                            }
+                        }
+                    } else {
+                        console.error(`Invalid data in file ${file.name}: Missing fields: ${validation.missingFields.join(', ')}`);
+                        errorCount++;
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${file.name}:`, error);
+                    errorCount++;
+                }
+            }
+
+            // Show results
+            if (successCount > 0) {
+                showStatus(`Successfully uploaded ${successCount} invoices to database`, 'success');
+            }
+            if (errorCount > 0) {
+                showStatus(`${errorCount} files had errors and were not uploaded`, 'error');
+            }
+
+            updateTrackerDisplay();
+        }
+
+        function validateInvoiceData(data) {
+            const requiredFields = ['supplier_name', 'total_amount_with_VAT', 'VAT_21', 'VAT_12', 'duzp', 'reliable_VAT_payer'];
+            const missingFields = requiredFields.filter(field => !data.hasOwnProperty(field));
+            
+            if (!data.hasOwnProperty('vat_number')) {
+                missingFields.push('vat_number');
+            }
+            
+            return {
+                isValid: missingFields.length === 0,
+                missingFields: missingFields
+            };
+        }
+
+        // ============================================
+        // Event Listeners Setup
+        // ============================================
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize API key status
+            checkApiKeyStatus();
+            
+            // Load tracker data
+            loadTrackerData();
+            
+            // Setup extractor event listeners
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragging');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragging');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragging');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+            
+            // Add Enter key support for API key input
+            document.getElementById('apiKey').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveApiKey();
+                }
+            });
+            
+            document.getElementById('keyPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    saveApiKey();
+                }
+            });
+            
+            document.getElementById('unlockPassword').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    unlockApiKey();
+                }
+            });
+            
+            // Check if there's an encrypted key that needs unlocking
+            const encryptedKey = localStorage.getItem('mistralApiKeyEncrypted');
+            if (encryptedKey) {
+                const metadata = JSON.parse(localStorage.getItem('mistralApiKeyMetadata') || '{}');
+                if (metadata.passwordProtected) {
+                    showUnlockDialog();
+                }
+            }
+        });
+
+        // ============================================
+        // Suppliers Tab Functions
+        // ============================================
+        let suppliersPieChart = null;
+
+        async function loadSupplierData() {
+            const startDate = document.getElementById('suppliersStartDate').value;
+            const endDate = document.getElementById('suppliersEndDate').value;
+
+            if (!startDate || !endDate) {
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('Start date must be before end date');
+                return;
+            }
+
+            try {
+                const response = await apiCall(`/suppliers/daterange?startDate=${startDate}&endDate=${endDate}`);
+
+                if (!response || response.length === 0) {
+                    alert('No data found for the selected period');
+                    return;
+                }
+
+                displaySupplierData(response);
+            } catch (error) {
+                console.error('Error loading supplier data:', error);
+                alert('Failed to load supplier data. Please try again.');
+            }
+        }
+
+        function displaySupplierData(suppliers) {
+            const totalExpenditure = suppliers.reduce((sum, s) => sum + s.totalAmount, 0);
+            const totalInvoices = suppliers.reduce((sum, s) => sum + s.invoiceCount, 0);
+
+            // Add percentage to each supplier
+            suppliers.forEach(s => {
+                s.percentage = (s.totalAmount / totalExpenditure * 100);
+            });
+
+            // Update stats
+            document.getElementById('suppliersTotalExpenditure').textContent =
+                totalExpenditure.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' CZK';
+            document.getElementById('suppliersTotalSuppliers').textContent = suppliers.length;
+            document.getElementById('suppliersTotalInvoices').textContent = totalInvoices;
+
+            // Filter suppliers for chart (≥2%)
+            const chartSuppliers = suppliers.filter(s => s.percentage >= 1.5);
+            const otherSuppliers = suppliers.filter(s => s.percentage < 1.5);
+            const otherTotal = otherSuppliers.reduce((sum, s) => sum + s.totalAmount, 0);
+
+            // Create pie chart
+            createSuppliersPieChart(chartSuppliers, otherTotal, totalExpenditure);
+
+            // Create table (only full table now)
+            createSuppliersFullTable(suppliers);
+
+            // Show content
+            document.getElementById('suppliersContent').style.display = 'block';
+        }
+
+        function createSuppliersPieChart(suppliers, otherTotal, totalExpenditure) {
+            const ctx = document.getElementById('suppliersPieChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (suppliersPieChart) {
+                suppliersPieChart.destroy();
+            }
+
+            const labels = suppliers.map(s => s.name);
+            const data = suppliers.map(s => s.totalAmount);
+
+            // Add "Others" if there's any
+            if (otherTotal > 0) {
+                labels.push('Others (< 2%)');
+                data.push(otherTotal);
+            }
+
+            const colors = [
+                '#00A38C', '#FF8000', '#0067A3', '#006859',
+                '#43e97b', '#fee140', '#30cfd0', '#f093fb',
+                '#a8edea', '#fed6e3', '#c471f5', '#12c2e9',
+                '#f857a6', '#ff6b6b', '#4ecdc4', '#45b7d1'
+            ];
+
+            suppliersPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 3,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 13
+                                },
+                                boxWidth: 15,
+                                boxHeight: 15,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const percentage = (value / totalExpenditure * 100).toFixed(1);
+                                            return {
+                                                text: `${label} (${percentage}%)`,
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.parsed;
+                                    const percentage = (value / totalExpenditure * 100).toFixed(2);
+                                    return context.label + ': ' +
+                                        value.toLocaleString('cs-CZ', { minimumFractionDigits: 2 }) +
+                                        ' CZK (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createSuppliersFullTable(suppliers) {
+            const tbody = document.getElementById('suppliersFullTable');
+            tbody.innerHTML = '';
+
+            suppliers.forEach((supplier, index) => {
+                const row = tbody.insertRow();
+                row.style.borderBottom = '1px solid #e2e8f0';
+                row.style.transition = 'background-color 0.2s';
+
+                // Alternate row colors
+                if (index % 2 === 0) {
+                    row.style.backgroundColor = '#f9fafb';
+                }
+
+                // Hover effect
+                row.onmouseenter = function() {
+                    this.style.backgroundColor = '#f0f4ff';
+                };
+                row.onmouseleave = function() {
+                    this.style.backgroundColor = index % 2 === 0 ? '#f9fafb' : 'white';
+                };
+
+                // XSS Prevention: Escape user-controlled data before HTML insertion
+                const safeName = escapeHtml(supplier.name);
+                
+                row.innerHTML = `
+                    <td style="padding: 15px; text-align: left;">${index + 1}</td>
+                    <td style="padding: 15px; text-align: left; font-weight: 500;">${safeName}</td>
+                    <td style="padding: 15px; text-align: right; font-weight: 600; color: #4b5563;">${supplier.totalAmount.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style="padding: 15px; text-align: right; color: #00A38C; font-weight: 500;">${supplier.percentage.toFixed(2)}%</td>
+                    <td style="padding: 15px; text-align: center; color: #6b7280;">${supplier.invoiceCount}</td>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
