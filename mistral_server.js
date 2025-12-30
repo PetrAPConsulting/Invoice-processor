@@ -11,7 +11,40 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://unpkg.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      scriptSrcAttr: ["'unsafe-inline'"],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
+        "https://fonts.googleapis.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.mistral.ai",
+        "https://adisrws.mfcr.cz"
+      ]
+    }
+  }
+}));
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -60,6 +93,7 @@ function interpretStatus(status) {
 
 /**
  * Native Node.js VAT reliability checker
+ * Replaces the Python subprocess implementation
  */
 async function checkVatReliability(vatInput) {
     const result = {
@@ -185,15 +219,15 @@ app.post('/api/mistral/chat', async (req, res) => {
             return res.status(400).json({ error: 'Messages array is required' });
         }
 
-        console.log('🔍 Processing Mistral chat completion...');
+        console.log('🧠 Processing Mistral chat completion...');
         console.log('📄 Messages count:', messages.length);
 
         const chatRequest = {
-            model: 'mistral-small-latest',
+            model: 'mistral-small-2506',
             messages: messages,
             temperature: temperature || 0.1,
             top_p: top_p || 0.95,
-            max_tokens: max_tokens || 500,
+            max_tokens: max_tokens || 300,
             response_format: {
                 type: 'json_object'
             }
@@ -208,7 +242,7 @@ app.post('/api/mistral/chat', async (req, res) => {
             body: JSON.stringify(chatRequest)
         });
 
-        console.log(`📊 Mistral Response status: ${response.status}`);
+        console.log(`📝 Mistral Response status: ${response.status}`);
 
         const contentType = response.headers.get('content-type');
         if (contentType && !contentType.includes('application/json')) {
@@ -444,9 +478,10 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`✅ Mistral Invoice Manager Server running on port ${PORT}`);
+    console.log(`💻 Mistral Invoice Manager Server running on port ${PORT}`);
     console.log(`API available at: http://localhost:${PORT}/api`);
     console.log(`Mistral Proxy available at: http://localhost:${PORT}/api/mistral/chat`);
-    console.log('📝 Model: mistral-small-latest with T=0.0, top_p=0.95');
+    console.log('🤖 Model: mistral-small-2506 with T=0.1, top_p=0.95');
     console.log('💾 Database: mistral_invoices.db');
 });
+
