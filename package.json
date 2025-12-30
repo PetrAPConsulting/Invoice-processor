@@ -1,6 +1,6 @@
 {
   "name": "mistral-invoice-tracker",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Mistral AI powered Invoice & Receipt Manager with integrated backend and proxy",
   "main": "mistral_server.js",
   "scripts": {
@@ -20,8 +20,8 @@
   "dependencies": {
     "body-parser": "^1.20.4",
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "fast-xml-parser": "^5.3.2",
+    "express": "^4.22.1",
+    "fast-xml-parser": "^5.3.3",
     "helmet": "^7.1.0",
     "node-fetch": "^2.7.0",
     "sqlite3": "^5.1.6"
