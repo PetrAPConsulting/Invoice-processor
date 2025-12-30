@@ -344,14 +344,16 @@ const getInvoicesByDateRange = async (startDate, endDate) => {
             const parts = invoice.duzp.split('.');
             if (parts.length !== 3) return false;
 
+            // Create invoice date at midnight LOCAL time
             const invoiceDate = new Date(
                 parseInt(parts[2]),
                 parseInt(parts[1]) - 1,
                 parseInt(parts[0])
             );
 
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+            // Parse start/end dates and set to midnight LOCAL time
+            const start = new Date(startDate + 'T00:00:00');
+            const end = new Date(endDate + 'T23:59:59');
 
             return invoiceDate >= start && invoiceDate <= end;
         });
