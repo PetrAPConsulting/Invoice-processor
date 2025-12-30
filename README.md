@@ -51,7 +51,7 @@ npm --version
 
 ### 1. Navigate to Project Directory
 
-Copy all necessary files to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`)
+Copy all necessary files and Public folder to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`)
 
 ### 2. Install Dependencies
 
