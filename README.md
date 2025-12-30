@@ -1,6 +1,6 @@
 # Mistral Invoice & Receipt Manager - Installation Guide
 
-A full-stack invoice processing and tracking application powered by **Mistral AI** with automated VAT reliability checking for Czech businesses. Version 1.1.0 is pure Node.js application only.
+A full-stack invoice processing and tracking application powered by **Mistral AI** with automated VAT reliability checking for Czech businesses. Version 1.2.0 is pure Node.js fully separated Frontend/Backend application.
 
 ## Features 
 
@@ -14,13 +14,15 @@ A full-stack invoice processing and tracking application powered by **Mistral AI
 
 
 ### 2. **Packages ** 
-- Files: `mistral_server.js`, `mistral_database.js`, `Mistral_Invoice_processor.html`, `package.json`
+- Files: `mistral_server.js`, `mistral_database.js`, `index.html`, `package.json`
 - Database: `mistral_invoices.db`
 - API: Mistral with mistral-small-latest model (the newest version of Mistral Small 3.2 )
 - Tabs: Invoice Extractor, Expense Tracker, Suppliers
 
-**Web based application (html file) runs on localhost port 3002**
-
+**Web based application (index.html file in Public directory) runs on localhost port 3002**
+```bash
+http://localhost:3002
+```
 ---
 
 ## Prerequisites
@@ -70,8 +72,10 @@ This will install all required Node.js packages including:
 
 ### Mistral API Key Setup
 
-When you first open `Mistral_Invoice_processor.html`:
-
+When you first open app on
+```bash
+http://localhost:3002
+```
 1. Navigate to the "Invoice Extractor" tab
 2. Enter your **Mistral API key** in the API Configuration section
 3. Optionally enable password protection for the key
@@ -106,9 +110,10 @@ Mistral Proxy available at: http://localhost:3002/api/mistral/chat
 
 ### Access the Application
 
-Open `Mistral_Invoice_processor.html` directly in your browser:
-
-
+Open browser and insert:
+```bash
+http://localhost:3002
+```
 ---
 
 ## Using the Mistral Application
@@ -179,7 +184,7 @@ or export data directly from database
 
 **Solution:** :
 - Change the port in `mistral_server.js`: `const PORT = 3000-5000;`
-- And update `Mistral_Invoice_processor.html`: `const API_BASE_URL = 'http://localhost:300x/api';`
+- And update `index.html`: `const API_BASE_URL = 'http://localhost:300x/api';`
 
 ### Mistral API Issues
 
@@ -232,13 +237,17 @@ The Mistral backend provides these REST API endpoints:
 ## File Structure
 
 ```
-Mistral_Faktury/
-├── package.json                        # Application dependencies
-├── mistral_server.js                   # Backend server + Mistral proxy + VAT checker (port 3002)
-├── mistral_database.js                 # Database operations
-├── Mistral_Invoice_processor.html      # Frontend application
-├── mistral_invoices.db                 # SQLite database (auto-created)
-└── README.md                           # This file
+YourAppFolder/
+├── mistral_server.js
+├── mistral_database.js
+├── mistral_invoices.db      ← SQLite database (created automatically)
+├── package.json
+├── public/                  ← All frontend files go here
+│   ├── index.html
+│   └── Assets/
+│       └── favicon.png
+│       └── images.png
+└── node_modules/            ← Installed
 ```
 
 ---
@@ -278,5 +287,5 @@ This application is provided as-is for personal and commercial use.
 
 ---
 
-**Last Updated:** October 2025
-**Version:** 1.1.0 - Native Node.js VAT checker (removed Python dependency)
+**Last Updated:** December 2025
+**Version:** 1.2.0 - Native Node.js 
