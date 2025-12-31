@@ -51,8 +51,11 @@ npm --version
 
 ### 1. Navigate to Project Directory
 
-Copy all necessary files and Public folder to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`)
-
+Copy all necessary files and Public folder to chosen directory (`mistral_server.js`, `mistral_database.js`, `package.json`) or simply
+```bash
+git clone https://github.com/PetrAPConsulting/Invoice-processor.git
+cd invoice-processor
+```
 ### 2. Install Dependencies
 
 ```bash
