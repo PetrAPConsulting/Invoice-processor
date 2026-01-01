@@ -940,8 +940,18 @@
                     <div class="stat-value" id="ytdVAT">0</div>
                 </div>
             </div>
-
-            <div class="quarter-tabs" id="quarterTabs"></div>
+            
+			<div style="margin-bottom: 20px; text-align: center;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                    <button class="btn btn-secondary" onclick="changeYear(-1)" style="padding: 8px 16px;">◀ Previous Year</button>
+                    <div style="font-size: 24px; font-weight: bold; color: #00A38C; min-width: 100px;">
+                        <span id="currentYearDisplay">2026</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="changeYear(1)" style="padding: 8px 16px;">Next Year ▶</button>
+                </div>
+            </div>
+            
+			<div class="quarter-tabs" id="quarterTabs"></div>
 
             <div style="margin-bottom: 20px; text-align: center;">
                 <div class="action-buttons" style="justify-content: center;">
@@ -1204,7 +1214,8 @@
                 document.getElementById('extractorPage').classList.add('active');
             } else if (page === 'tracker') {
                 document.getElementById('trackerPage').classList.add('active');
-                updateTrackerDisplay();
+                updateYearDisplay();
+				updateTrackerDisplay();
             } else if (page === 'suppliers') {
                 document.getElementById('suppliersPage').classList.add('active');
             }
@@ -2293,7 +2304,8 @@ Provide only the JSON output without any additional description or explanation.`
         }
 
         function updateTrackerDisplay() {
-            updateStats();
+            updateYearDisplay();
+			updateStats();
             updateQuarterTabs();
             updateCharts();
             updateSuppliersTable();
@@ -2366,7 +2378,20 @@ Provide only the JSON output without any additional description or explanation.`
             event.target.classList.add('active');
             updateTrackerDisplay();
         }
+		
+        function changeYear(delta) {
+            currentYear += delta;
+            updateYearDisplay();
+            updateTrackerDisplay();
+        }
 
+        function updateYearDisplay() {
+            const yearDisplay = document.getElementById('currentYearDisplay');
+            if (yearDisplay) {
+                yearDisplay.textContent = currentYear;
+            }
+        }
+		
         function updateCharts() {
             updateExpenseChart();
         }
